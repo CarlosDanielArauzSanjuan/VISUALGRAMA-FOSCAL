@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Procesador a Draw.io XML</title>
+<link rel="stylesheet" href="/visualgrama_xml_generator.css">
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border:4px solid #000;padding:28px 32px;max-width:440px;width:90%;font-family:'Space Grotesk',sans-serif;font-size:10.5pt;box-shadow:8px 8px 0 #000;">
+    <div id="modal-msg" style="margin-bottom:20px;font-size:11pt;line-height:1.5;font-weight:600;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button id="modal-cancel" class="btn" style="margin:0;">Cancelar</button>
+      <button id="modal-ok" class="btn btn-primary" style="width:auto;padding:8px 22px;margin:0;">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+
+  <h2>Procesador FLUJOGRAMA → Draw.io XML</h2>
+
+  <div class="tabs">
+    <button id="btn-tab-import" class="tab active" onclick="showTab('import')">1. Texto</button>
+    <button id="btn-tab-config" class="tab" onclick="showTab('config')">2. Configuración</button>
+    <button id="btn-tab-nodes" class="tab" onclick="showTab('nodes')">3. Actividades</button>
+    <button id="btn-tab-output" class="tab" onclick="showTab('output')">4. XML</button>
+  </div>
+
+  <!-- TAB 1: TEXTO -->
+  <div id="tab-import">
+    <div class="section-header">
+      <div class="sh-text">
+        <h3>Importar texto del protocolo</h3>
+        <p>Formato: <code>N. (Actor), Descripción</code> — decisiones con <b>?</b> — conectores: <code>[A].</code> — saltos: <code>ir a N</code> o <code>ir a [A]</code></p>
+      </div>
+      <div class="sh-btn"><button class="btn-clear" onclick="clearTexto()">✕ Limpiar texto</button></div>
+    </div>
+    <textarea id="inputText" rows="14" placeholder="Ejemplo:
+INICIO
+1. (Enfermera), Preparar equipo
+2. (Enfermera), ¿El paciente colabora?
+si: ir a 3
+no: ir a [A]
+3. (Enfermera), Realizar la extracción
+[A].
+4. (Psicólogo), Aplicar técnica de contención
+ir a 1
+FIN" oninput="saveSession()"></textarea>
+    <div id="error-container"></div>
+    <div id="parse-summary-box" style="display:none"></div>
+    <button class="btn btn-primary" onclick="procesarTexto()">Extraer y continuar</button>
+    <div id="parse-log" class="parse-log"></div>
+  </div>
+
+  <!-- TAB 2: CONFIGURACIÓN -->
+  <div id="tab-config" class="hidden">
+    <h3>Nombre del proceso</h3>
+    <label>Nombre que aparecerá en el diagrama</label>
+    <input type="text" id="processName" value="Mi Proceso" placeholder="Ej: Administración de medicamentos" oninput="saveSession()">
+
+    <div class="section-header">
+      <div class="sh-text">
+        <h3>Responsables detectados</h3>
+        <p>Puedes editar o agregar responsables.</p>
+      </div>
+      <div class="sh-btn"><button class="btn-clear" onclick="clearActors()">✕ Limpiar responsables</button></div>
+    </div>
+    <div id="actors-limit-warn" class="limit-warn hidden">⚠ Límite alcanzado: máximo 8 responsables permitidos.</div>
+    <div id="actors-list"></div>
+    <button class="btn" id="btn-add-actor" onclick="addActor()">+ Agregar Responsable</button>
+
+    <hr>
+
+    <h3>Métricas calculadas</h3>
+    <div class="metrics" id="metrics-display"></div>
+
+    <button class="btn btn-primary" onclick="syncConfigAndContinue()">Revisar Actividades</button>
+  </div>
+
+  <!-- TAB 3: ACTIVIDADES -->
+  <div id="tab-nodes" class="hidden">
+    <div class="section-header">
+      <div class="sh-text">
+        <h3>Actividades</h3>
+        <p>Revisa y ajusta tipos, rutas y responsables. <b>Arrastra para reordenar.</b> Para el límite cuentan solo <b>Acción</b> y <b>Decisión</b>. Los conectores no cuentan.</p>
+      </div>
+      <div class="sh-btn"><button class="btn-clear" onclick="clearNodes()">✕ Limpiar nodos</button></div>
+    </div>
+    <div class="ui-note">Paginación: máximo 16 filas de contenido por página, con 2 filas reservadas para continuidad (Inicio/Fin automáticos) y hasta 14 nodos de flujo.</div>
+    <div id="nodes-limit-warn" class="limit-warn hidden"></div>
+    <div id="nodes-list"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;margin-top:4px;">
+      <button class="btn" id="btn-add-action" onclick="addNode('action')">+ Acción</button>
+      <button class="btn" id="btn-add-decision" onclick="addNode('decision')">+ Decisión</button>
+      <button class="btn" id="btn-add-conector" onclick="addNode('conector')">+ Conector</button>
+    </div>
+    <button class="btn btn-primary" onclick="generateXML()">Generar XML Draw.io</button>
+  </div>
+
+  <!-- TAB 4: XML -->
+  <div id="tab-output" class="hidden">
+    <div class="notice"><b>Listo.</b> Copia el XML. En Draw.io: <b>Extras → Editar Diagrama</b> y pégalo.</div>
+    <div id="output-metrics"></div>
+    <pre id="xml-output">— El XML aparecerá aquí —</pre>
+    <button class="btn btn-primary" style="margin-top:10px;" onclick="copyXML()">Copiar XML</button>
+    <div id="copy-msg" style="font-size:10pt;font-weight:800;margin-top:8px;display:none;text-align:center;"></div>
+  </div>
+
+</div>
+
+<script src="/visualgrama_xml_generator.js"></script>
+
+<footer style="max-width:900px;margin:28px auto 0;display:flex;align-items:center;justify-content:space-between;border:4px solid #000;background:#fff;padding:14px 20px;box-shadow:6px 6px 0 #000;">
+  <img src="/foscal.png" alt="Clínica Foscal" style="height:48px;object-fit:contain;">
+  <p style="font-family:'Space Grotesk',sans-serif;font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#000;">
+    Gerencia de Mejoramiento y Riesgo
+  </p>
+</footer>
+</body>
+</html>
