@@ -980,7 +980,8 @@ hr {
 }
 
 .kanban-col-header {
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 80;
   background: var(--fg);
   color: #fff;

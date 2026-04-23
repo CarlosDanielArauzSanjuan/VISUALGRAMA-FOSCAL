@@ -399,7 +399,8 @@ function figSize(type, RH, NW) {
   // action y decision
   const minH = (RH === 50) ? 30 : FIG_MIN[type].h;
   const minW = FIG_MIN[type].w;
-  return { w: Math.max(NW, minW), h: Math.max(minH, Math.min(minH, RH - 20)) };
+  const MAX_FIG_W = 180;
+  return { w: Math.min(Math.max(NW, minW), MAX_FIG_W), h: Math.max(minH, Math.min(minH, RH - 20)) };
 }
 
 /**
@@ -579,7 +580,7 @@ function renderNodes() {
         const isDragOver = kanbanDragOverIdx === i;
         const svgIcon = {
           action:     `<svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="1" width="20" height="12" rx="0" stroke="#0000FF" stroke-width="2" fill="none"/></svg>`,
-          decision:   `<svg width="22" height="16" viewBox="0 0 22 16"><polygon points="11,1 21,8 11,15 1,8" stroke="#FF8000" stroke-width="2" fill="none"/></svg>`,
+          decision:   `<svg width="22" height="16" viewBox="0 0 22 16"><polygon points="11,1 21,8 11,15 1,8" stroke="#f19a43" stroke-width="2" fill="none"/></svg>`,
           terminator: `<svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="1" width="20" height="12" rx="6" stroke="#00B400" stroke-width="2" fill="none"/></svg>`,
           conector:   `<svg width="16" height="16" viewBox="0 0 16 16"><ellipse cx="8" cy="8" rx="7" ry="7" stroke="#555" stroke-width="2" fill="none"/></svg>`,
         }[n.type] || '';
@@ -949,10 +950,7 @@ function generateXML() {
     for (let pi=0; pi<nonConnPageNodes.length; pi++) {
       const {n, i} = nonConnPageNodes[pi];
       const ai = actorIndex[n.actor] ?? 0;
-      if (pi > 0) {
-        const prevAi = actorIndex[nonConnPageNodes[pi-1].n.actor] ?? 0;
-        if (prevAi >= ai) currentRow++;
-      }
+      if (pi > 0) currentRow++;
       const Xcol  = snap(ai * m.CW);
       const Yrow  = snap(HEADER_H + currentRow * m.RH);
       const fs    = figSize(n.type, m.RH, m.NW);
@@ -1064,7 +1062,7 @@ function generateXML() {
       if (n.type==='terminator') {
         style=`shape=mxgraph.flowchart.terminator;fillColor=none;strokeColor=#00B400;strokeWidth=2;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;`;
       } else if (n.type==='decision') {
-        style=`shape=rhombus;perimeter=rhombusPerimeter;fillColor=none;strokeColor=#FF8000;strokeWidth=2;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;`;
+        style=`shape=rhombus;perimeter=rhombusPerimeter;fillColor=none;strokeColor=#f19a43;strokeWidth=2;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;`;
       } else if (n.type==='conector') {
         style=`shape=ellipse;fillColor=none;strokeColor=#000000;strokeWidth=2;${baseFont}fontSize=9;html=1;whiteSpace=wrap;align=center;`;
       } else {
@@ -1194,11 +1192,7 @@ function generateXML() {
         if (prevIsDec&&decisionTargets.has(nx)) return;
         const pn=positions[nx]; if(!pn) return;
         const sameRow=(p.row===pn.row);
-        if (sameRow) {
-          fullXml+=`\n    <mxCell id="edge_${edgeId++}" value="" style="${baseEdge}exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${nodeIds[nx]}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
-        } else {
-          fullXml+=`\n    <mxCell id="edge_${edgeId++}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${nodeIds[nx]}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
-        }
+        fullXml+=`\n    <mxCell id="edge_${edgeId++}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${nodeIds[nx]}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
       }
     }); // fin pageNodes.forEach aristas
 
