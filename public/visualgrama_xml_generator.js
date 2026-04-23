@@ -481,6 +481,9 @@ let kanbanDragOverIdx = null;
 
 function renderNodes() {
   const el = document.getElementById('nodes-list');
+  const tabPanel = document.getElementById('tab-nodes');
+  const prevScrollTop = tabPanel ? tabPanel.scrollTop : 0;
+  const prevScrollLeft = tabPanel ? tabPanel.scrollLeft : 0;
   if (actors.length===0||nodes.length===0) {
     el.innerHTML='<div class="notice">No hay nodos. Usa los botones para agregar.</div>';
     updateCapacityUI(); return;
@@ -525,8 +528,6 @@ function renderNodes() {
   });
 
   // ── Construir tabla HTML ──────────────────────────────────────────
-  const colW = Math.max(120, Math.floor(100 / colCount));
-
   let html = `<div class="kanban-wrap">
     <div class="kanban-grid" style="grid-template-columns: 40px repeat(${colCount}, 1fr);">`;
 
@@ -587,6 +588,12 @@ function renderNodes() {
 
   html += `</div></div>`;
   el.innerHTML = html;
+  if (tabPanel) {
+    requestAnimationFrame(() => {
+      tabPanel.scrollTop = prevScrollTop;
+      tabPanel.scrollLeft = prevScrollLeft;
+    });
+  }
   updateCapacityUI();
 }
 
@@ -596,8 +603,11 @@ function kanbanDragStart(e, idx) {
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', String(idx));
   // Guardar posición de scroll del contenedor
-  const wrap = document.querySelector('.kanban-wrap');
-  if (wrap) wrap.dataset.scrollTop = wrap.scrollTop;
+  const panel = document.getElementById('tab-nodes');
+  if (panel) {
+    panel.dataset.scrollTop = panel.scrollTop;
+    panel.dataset.scrollLeft = panel.scrollLeft;
+  }
   setTimeout(() => {
     document.querySelectorAll('[ondragstart]').forEach(c => {
       if (c.getAttribute('ondragstart') === `kanbanDragStart(event,${idx})`) c.style.opacity = '0.3';
@@ -607,9 +617,10 @@ function kanbanDragStart(e, idx) {
 
 function kanbanDragEnd(e) {
   // Restaurar scroll
-  const wrap = document.querySelector('.kanban-wrap');
-  if (wrap && wrap.dataset.scrollTop !== undefined) {
-    wrap.scrollTop = parseInt(wrap.dataset.scrollTop) || 0;
+  const panel = document.getElementById('tab-nodes');
+  if (panel && panel.dataset.scrollTop !== undefined) {
+    panel.scrollTop = parseInt(panel.dataset.scrollTop) || 0;
+    panel.scrollLeft = parseInt(panel.dataset.scrollLeft) || 0;
   }
   kanbanDragIdx = null;
   kanbanDragOverIdx = null;
