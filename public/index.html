@@ -36,7 +36,12 @@
     <div class="section-header">
       <div class="sh-text">
         <h3>Importar texto del protocolo</h3>
-        <p>Formato: <code>N. (Actor), Descripción</code> — decisiones con <b>?</b> — conectores: <code>[A].</code> — saltos: <code>ir a N</code> o <code>ir a [A]</code></p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+  <span style="background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:8.5pt;font-weight:700;letter-spacing:0.04em;"> #. (ACTOR), Descripción</span>
+  <span style="background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:8.5pt;font-weight:700;letter-spacing:0.04em;">decisiones con ?</span>
+  <span style="background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:8.5pt;font-weight:700;letter-spacing:0.04em;">[A]. conectores</span>
+  <span style="background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:8.5pt;font-weight:700;letter-spacing:0.04em;">ir a #  ·  ir a [A]</span>
+</div>
       </div>
       <div class="sh-btn"><button class="btn-clear" onclick="clearTexto()">✕ Limpiar texto</button></div>
     </div>
@@ -53,7 +58,10 @@ ir a 1
 FIN" oninput="saveSession()"></textarea>
     <div id="error-container"></div>
     <div id="parse-summary-box" style="display:none"></div>
-    <button class="btn btn-primary" onclick="procesarTexto()">Extraer y continuar</button>
+    <div style="display:flex;gap:10px;margin-bottom:4px;">
+  <button class="btn btn-primary" style="flex:1;" onclick="soloExtraer()">Extraer</button>
+  <button class="btn btn-primary" style="flex:1;background:#22c55e;border-color:#22c55e;" id="btn-continuar-tab2" onclick="continuarAConfig()" disabled>Continuar →</button>
+</div>
     <div id="parse-log" class="parse-log"></div>
   </div>
 
@@ -71,7 +79,7 @@ FIN" oninput="saveSession()"></textarea>
       <div class="sh-btn"><button class="btn-clear" onclick="clearActors()">✕ Limpiar responsables</button></div>
     </div>
     <div id="actors-limit-warn" class="limit-warn hidden">⚠ Límite alcanzado: máximo 8 responsables permitidos.</div>
-    <div id="actors-list"></div>
+<div id="actors-list" style="max-height:220px;overflow-y:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:#aaa transparent;"></div>
     <button class="btn" id="btn-add-actor" onclick="addActor()">+ Agregar Responsable</button>
 
     <hr>
@@ -104,7 +112,7 @@ FIN" oninput="saveSession()"></textarea>
 
   <!-- TAB 4: XML -->
   <div id="tab-output" class="hidden">
-    <div class="notice"><b>Listo.</b> Copia el XML. En Draw.io: <b>Extras → Editar Diagrama</b> y pégalo.</div>
+<div class="notice"><b>Listo.</b> Descarga o copia el XML generado. Para importarlo en Draw.io: abre <b>draw.io</b>, crea un diagrama nuevo, ve a <b>Extras → Editar Diagrama</b>, pega el contenido y haz clic en <b>Aceptar</b>. También puedes usar <b>Archivo → Importar desde → Dispositivo</b> si guardaste el archivo .xml.</div>
     <div id="output-metrics"></div>
     <pre id="xml-output">— El XML aparecerá aquí —</pre>
     <button class="btn btn-primary" style="margin-top:10px;" onclick="copyXML()">Copiar XML</button>

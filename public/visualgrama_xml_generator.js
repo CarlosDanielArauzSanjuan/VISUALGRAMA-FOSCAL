@@ -108,7 +108,7 @@ function showToast(msg) {
 }
 
 // ── PARSER ────────────────────────────────────────────────────────
-function procesarTexto() {
+function procesarTexto(autoAdvance = true) {
   const logEl = document.getElementById('parse-log');
   logEl.innerHTML = ''; logEl.style.display = 'none';
   clearError();
@@ -261,7 +261,17 @@ function procesarTexto() {
   saveSession();
   renderLog(logs);
   renderSummary(flowNodes.length, tempNodes.filter(n=>n.type==='conector').length, actors.length, warnings, tempNodes.filter(n=>n.type==='decision').length);
-  if (!logs.some(l=>l.level==='err')) showTab('config');
+if (!logs.some(l=>l.level==='err')) {
+  const btnC = document.getElementById('btn-continuar-tab2');
+  if (btnC) { btnC.disabled = false; btnC.style.opacity = '1'; }
+  if (autoAdvance) showTab('config');
+}
+}
+function soloExtraer() {
+  procesarTexto(false);
+}
+function continuarAConfig() {
+  showTab('config');
 }
 
 function renderLog(logs) {
@@ -542,6 +552,12 @@ function renderNodes() {
     for (let ci=0; ci<colCount; ci++) {
       if (ci === row.col) {
         const isDragOver = kanbanDragOverIdx === i;
+        const svgIcon = {
+          action:     `<svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="1" width="20" height="12" rx="0" stroke="#0000FF" stroke-width="2" fill="none"/></svg>`,
+          decision:   `<svg width="22" height="16" viewBox="0 0 22 16"><polygon points="11,1 21,8 11,15 1,8" stroke="#FF8000" stroke-width="2" fill="none"/></svg>`,
+          terminator: `<svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="1" width="20" height="12" rx="6" stroke="#00B400" stroke-width="2" fill="none"/></svg>`,
+          conector:   `<svg width="16" height="16" viewBox="0 0 16 16"><ellipse cx="8" cy="8" rx="7" ry="7" stroke="#555" stroke-width="2" fill="none"/></svg>`,
+        }[n.type] || '';
         html += `<div class="kanban-cell kanban-cell--filled type-${n.type}${isDragOver?' drag-over':''}"
           draggable="true"
           ondragstart="kanbanDragStart(event,${i})"
@@ -551,8 +567,13 @@ function renderNodes() {
           ondrop="kanbanDrop(event,${i})"
           onclick="openNodeEditor(${i})">
           ${badges.length>0 ? `<div class="kanban-connector-badges">${badges.map(b=>`<span class="kanban-conn-dot" title="Conector ${b}">${b}</span>`).join('')}</div>` : ''}
-          <div class="kanban-cell-type">${typeLabel}</div>
-          <div class="kanban-cell-label">${shortLabel}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:${badges.length>0?'10':'4'}px;">
+            <div style="flex-shrink:0;">${svgIcon}</div>
+            <div>
+              <div class="kanban-cell-type">${typeLabel}</div>
+              <div class="kanban-cell-label">${shortLabel}</div>
+            </div>
+          </div>
           <div class="kanban-cell-drag">⠿</div>
         </div>`;
       } else {
@@ -573,25 +594,32 @@ function renderNodes() {
 function kanbanDragStart(e, idx) {
   kanbanDragIdx = idx;
   e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/plain', idx);
+  e.dataTransfer.setData('text/plain', String(idx));
+  // Guardar posición de scroll del contenedor
+  const wrap = document.querySelector('.kanban-wrap');
+  if (wrap) wrap.dataset.scrollTop = wrap.scrollTop;
   setTimeout(() => {
-    document.querySelectorAll('.kanban-cell--filled').forEach((c,i) => {
-      if (parseInt(c.dataset && c.dataset.idx) === idx) c.classList.add('dragging');
-    });
-    // marcar la celda arrastrada por nodo idx
     document.querySelectorAll('[ondragstart]').forEach(c => {
-      if (c.getAttribute('ondragstart')===`kanbanDragStart(event,${idx})`) c.style.opacity='0.3';
+      if (c.getAttribute('ondragstart') === `kanbanDragStart(event,${idx})`) c.style.opacity = '0.3';
     });
   }, 0);
 }
+
 function kanbanDragEnd(e) {
+  // Restaurar scroll
+  const wrap = document.querySelector('.kanban-wrap');
+  if (wrap && wrap.dataset.scrollTop !== undefined) {
+    wrap.scrollTop = parseInt(wrap.dataset.scrollTop) || 0;
+  }
   kanbanDragIdx = null;
   kanbanDragOverIdx = null;
   document.querySelectorAll('.kanban-cell').forEach(c => {
     c.classList.remove('drag-over','dragging');
-    c.style.opacity='';
+    c.style.opacity = '';
   });
 }
+
+
 function kanbanDragOver(e, targetIdx, targetCol) {
   e.preventDefault(); e.dataTransfer.dropEffect = 'move';
   kanbanDragOverIdx = targetIdx;

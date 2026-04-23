@@ -950,3 +950,6 @@ hr {
   background: rgba(255,68,68,0.15);
   box-shadow: 0 0 12px rgba(255,68,68,0.3);
 }
+
+.kanban-grid { position: relative; }
+.kanban-col-header, .kanban-corner { position: sticky; top: 0; z-index: 10; }
