@@ -43,6 +43,28 @@ function clearError() {
   document.getElementById('error-container').innerHTML = '';
   document.getElementById('parse-summary-box').style.display = 'none';
 }
+function setImportSplitExpanded(expanded) {
+  const split = document.querySelector('#tab-import .import-split');
+  if (!split) return;
+  split.classList.toggle('import-split--single', !expanded);
+}
+let nodesToolbarOpen = false;
+function setNodesToolbarOpen(open) {
+  const drawer = document.getElementById('nodes-toolbar-drawer');
+  const tab = document.getElementById('nodes-toolbar-tab');
+  const workspace = document.getElementById('nodes-workspace');
+  if (!drawer || !tab || !workspace) return;
+  nodesToolbarOpen = !!open;
+  drawer.classList.toggle('open', nodesToolbarOpen);
+  workspace.classList.toggle('toolbar-open', nodesToolbarOpen);
+  tab.setAttribute('aria-expanded', nodesToolbarOpen ? 'true' : 'false');
+  tab.textContent = nodesToolbarOpen ? 'Cerrar' : 'Herramientas';
+  tab.title = nodesToolbarOpen ? 'Ocultar herramientas' : 'Mostrar herramientas';
+}
+function toggleNodesToolbar(forceOpen) {
+  const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : !nodesToolbarOpen;
+  setNodesToolbarOpen(nextOpen);
+}
 function countFlowNodes() { return nodes.filter(n => n.type==='action' || n.type==='decision').length; }
 function isFlowType(type) { return type==='action' || type==='decision'; }
 
@@ -70,7 +92,7 @@ function showTab(t) {
     document.getElementById('tab-'+ x).classList.toggle('hidden', x !== t);
     document.getElementById('btn-tab-'+ x).classList.toggle('active', x === t);
   });
-  if (t === 'nodes')  { renderNodes();  updateCapacityUI(); }
+  if (t === 'nodes')  { renderNodes();  updateCapacityUI(); setNodesToolbarOpen(nodesToolbarOpen); }
   if (t === 'config') { renderActors(); calcMetrics(); updateCapacityUI(); }
 }
 function syncConfigAndContinue() {
@@ -112,6 +134,7 @@ function procesarTexto(autoAdvance = true) {
   const logEl = document.getElementById('parse-log');
   logEl.innerHTML = ''; logEl.style.display = 'none';
   clearError();
+  setImportSplitExpanded(true);
 
   const raw = document.getElementById('inputText').value;
   if (!raw.trim()) { showError('Por favor, pega algo de texto para procesar.'); return; }
@@ -417,7 +440,7 @@ function renderActors() {
     <div class="actor-row">
       <input value="${a.name}" placeholder="Nombre actor ${i+1}"
         onchange="actors[${i}].name=this.value;updateNodesActors();calcMetrics();saveSession();">
-      ${actors.length>1?`<button class="btn btn-remove" onclick="removeActor(${i})">Eliminar</button>`:''}
+      ${actors.length>1?`<button class="btn btn-remove" onclick="removeActor(${i})" title="Eliminar responsable" aria-label="Eliminar responsable"></button>`:''}
     </div>`).join('');
   calcMetrics(); updateCapacityUI();
 }
@@ -439,6 +462,7 @@ function clearTexto() {
     document.getElementById('inputText').value='';
     document.getElementById('parse-log').innerHTML='';
     document.getElementById('parse-log').style.display='none';
+    setImportSplitExpanded(false);
     clearError(); saveSession();
   });
 }
@@ -800,10 +824,30 @@ function nedDelete(i) {
 }
 
 function removeNode(i) { nodes.splice(i,1); saveSession(); renderNodes(); updateCapacityUI(); }
+function getVisibleInsertIndex() {
+  if (!nodes.length) return 0;
+  const panel = document.getElementById('tab-nodes');
+  const list = document.getElementById('nodes-list');
+  const rowNums = Array.from(document.querySelectorAll('#nodes-list .kanban-row-num'));
+  if (!panel || !list || rowNums.length === 0) return nodes.length;
+
+  const panelRect = panel.getBoundingClientRect();
+  const listRect = list.getBoundingClientRect();
+  const topLimit = Math.max(0, panelRect.top, listRect.top);
+  const bottomLimit = Math.min(window.innerHeight, panelRect.bottom, listRect.bottom);
+  if (bottomLimit <= topLimit) return nodes.length;
+
+  for (let i = 0; i < rowNums.length; i++) {
+    const r = rowNums[i].getBoundingClientRect();
+    if (r.bottom > topLimit && r.top < bottomLimit) return i;
+  }
+  return nodes.length;
+}
 function addNode(type) {
   if (actors.length===0) { showToast('⚠ Agrega al menos un responsable primero.'); return; }
   if (isFlowType(type)&&countFlowNodes()>=MAX_FLOW_NODES) { showToast(`⚠ Límite: máximo ${MAX_FLOW_NODES} nodos de flujo.`); updateCapacityUI(); return; }
-  nodes.push({
+  const insertIdx = getVisibleInsertIndex();
+  nodes.splice(insertIdx, 0, {
     type, actor:actors[0].name,
     label: type==='terminator'?(nodes.filter(n=>n.type==='terminator').length===0?'Inicio':'Fin'):type==='conector'?'A':'Nueva actividad',
     yes:'Sí', no:'No', siTarget:undefined, noTarget:undefined, target:undefined
@@ -1201,5 +1245,7 @@ function showCopyMsg(msg) {
 // ── INIT ──────────────────────────────────────────────────────────
 window.addEventListener('load',()=>{
   const restored=loadSession(); calcMetrics();
+  setImportSplitExpanded(false);
+  setNodesToolbarOpen(false);
   if (restored) { renderActors(); updateCapacityUI(); }
 });

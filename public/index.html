@@ -22,7 +22,13 @@
 
 <div class="section">
 
-  <h2>Procesador FLUJOGRAMA → Draw.io XML</h2>
+  <div class="title-row">
+    <h2>Procesador FLUJOGRAMA → Draw.io XML</h2>
+    <div class="title-brand">
+      <img src="/foscal.png" alt="Clínica Foscal" class="title-brand-logo">
+      <p class="title-brand-text">Gerencia de Mejoramiento y Riesgo</p>
+    </div>
+  </div>
 
   <div class="tabs">
     <button id="btn-tab-import" class="tab active" onclick="showTab('import')">1. Texto</button>
@@ -37,15 +43,21 @@
       <div class="sh-text">
         <h3>Importar texto del protocolo</h3>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
-  <span style="background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:8.5pt;font-weight:700;letter-spacing:0.04em;"> #. (ACTOR), Descripción</span>
-  <span style="background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:8.5pt;font-weight:700;letter-spacing:0.04em;">decisiones con ?</span>
-  <span style="background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:8.5pt;font-weight:700;letter-spacing:0.04em;">[A]. conectores</span>
-  <span style="background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:8.5pt;font-weight:700;letter-spacing:0.04em;">ir a #  ·  ir a [A]</span>
+  <span style="background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:8.5pt;font-weight:700;letter-spacing:0.04em;"> #actividad. (ACTOR), Descripción</span>
+  <span style="background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:8.5pt;font-weight:700;letter-spacing:0.04em;">DECISIONES con ?</span>
+  <span style="background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:8.5pt;font-weight:700;letter-spacing:0.04em;">[A]. para CONECTORES</span>
+  <span style="background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:8.5pt;font-weight:700;letter-spacing:0.04em;">ir a #actividad · ir a [A] ; para secuencia</span>
 </div>
       </div>
-      <div class="sh-btn"><button class="btn-clear" onclick="clearTexto()">✕ Limpiar texto</button></div>
+      <div class="sh-btn"><button class="btn-clear" onclick="clearTexto()">Limpiar texto</button></div>
     </div>
-    <textarea id="inputText" rows="14" placeholder="Ejemplo:
+    <div class="import-actions">
+      <button class="btn btn-primary" onclick="soloExtraer()">Extraer</button>
+      <button class="btn btn-primary" style="background:#22c55e;border-color:#37c91d;" id="btn-continuar-tab2" onclick="continuarAConfig()" disabled>Continuar</button>
+    </div>
+    <div class="import-split import-split--single">
+      <div class="import-left">
+        <textarea id="inputText" rows="14" placeholder="Ejemplo:
 INICIO
 1. (Enfermera), Preparar equipo
 2. (Enfermera), ¿El paciente colabora?
@@ -56,38 +68,44 @@ no: ir a [A]
 4. (Psicólogo), Aplicar técnica de contención
 ir a 1
 FIN" oninput="saveSession()"></textarea>
-    <div id="error-container"></div>
-    <div id="parse-summary-box" style="display:none"></div>
-    <div style="display:flex;gap:10px;margin-bottom:4px;">
-  <button class="btn btn-primary" style="flex:1;" onclick="soloExtraer()">Extraer</button>
-  <button class="btn btn-primary" style="flex:1;background:#22c55e;border-color:#22c55e;" id="btn-continuar-tab2" onclick="continuarAConfig()" disabled>Continuar →</button>
-</div>
-    <div id="parse-log" class="parse-log"></div>
+      </div>
+      <div class="import-right">
+        <div id="error-container"></div>
+        <div id="parse-summary-box" style="display:none"></div>
+        <div id="parse-log" class="parse-log"></div>
+      </div>
+    </div>
   </div>
 
   <!-- TAB 2: CONFIGURACIÓN -->
   <div id="tab-config" class="hidden">
-    <h3>Nombre del proceso</h3>
-    <label>Nombre que aparecerá en el diagrama</label>
-    <input type="text" id="processName" value="Mi Proceso" placeholder="Ej: Administración de medicamentos" oninput="saveSession()">
-
-    <div class="section-header">
-      <div class="sh-text">
+    <div class="config-top-row">
+      <div class="config-actors-copy">
         <h3>Responsables detectados</h3>
         <p>Puedes editar o agregar responsables.</p>
       </div>
-      <div class="sh-btn"><button class="btn-clear" onclick="clearActors()">✕ Limpiar responsables</button></div>
+      <div class="config-process-box">
+        <label>Nombre que aparecerá en el diagrama al descargarlo</label>
+        <input type="text" id="processName" value="Mi Proceso" placeholder="Ej: Administración de medicamentos" oninput="saveSession()">
+      </div>
     </div>
+
+    <div class="config-bottom-row">
+      <div class="config-actions">
+        <button class="btn btn-add-actor" id="btn-add-actor" onclick="addActor()">+ Agregar Responsable</button>
+      </div>
+      <div class="config-metrics-wrap">
+        <h3 class="config-metrics-title">Métricas calculadas</h3>
+        <div class="metrics" id="metrics-display"></div>
+      </div>
+      <div class="config-right-actions">
+        <button class="btn btn-primary btn-review-activities" onclick="syncConfigAndContinue()">Revisar Actividades</button>
+      </div>
+    </div>
+
     <div id="actors-limit-warn" class="limit-warn hidden">⚠ Límite alcanzado: máximo 8 responsables permitidos.</div>
-<div id="actors-list" style="max-height:220px;overflow-y:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:#aaa transparent;"></div>
-    <button class="btn" id="btn-add-actor" onclick="addActor()">+ Agregar Responsable</button>
+    <div id="actors-list" class="actors-list"></div>
 
-    <hr>
-
-    <h3>Métricas calculadas</h3>
-    <div class="metrics" id="metrics-display"></div>
-
-    <button class="btn btn-primary" onclick="syncConfigAndContinue()">Revisar Actividades</button>
   </div>
 
   <!-- TAB 3: ACTIVIDADES -->
@@ -95,17 +113,25 @@ FIN" oninput="saveSession()"></textarea>
     <div class="section-header">
       <div class="sh-text">
         <h3>Actividades</h3>
-        <p>Revisa y ajusta tipos, rutas y responsables. <b>Arrastra para reordenar.</b> Para el límite cuentan solo <b>Acción</b> y <b>Decisión</b>. Los conectores no cuentan.</p>
+        <p></p>
       </div>
-      <div class="sh-btn"><button class="btn-clear" onclick="clearNodes()">✕ Limpiar nodos</button></div>
     </div>
-    <div class="ui-note">Paginación: máximo 16 filas de contenido por página, con 2 filas reservadas para continuidad (Inicio/Fin automáticos) y hasta 14 nodos de flujo.</div>
+    <div class="ui-note">
+      <div class="ui-note-line">Revisa y ajusta tipos, rutas y responsables. <b>Arrastra para reordenar.</b> Para el límite cuentan solo <b>Acción</b> y <b>Decisión</b>. Los conectores no cuentan.</div>
+      <div class="ui-note-line"><b>Paginación:</b> máximo 16 filas de contenido por página, con 2 filas reservadas para continuidad (Inicio/Fin automáticos) y hasta 14 nodos de flujo.</div>
+    </div>
     <div id="nodes-limit-warn" class="limit-warn hidden"></div>
-    <div id="nodes-list"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;margin-top:4px;">
-      <button class="btn" id="btn-add-action" onclick="addNode('action')">+ Acción</button>
-      <button class="btn" id="btn-add-decision" onclick="addNode('decision')">+ Decisión</button>
-      <button class="btn" id="btn-add-conector" onclick="addNode('conector')">+ Conector</button>
+    <div class="nodes-workspace" id="nodes-workspace">
+      <div id="nodes-list"></div>
+      <div class="nodes-toolbar-drawer" id="nodes-toolbar-drawer">
+        <button type="button" class="nodes-toolbar-tab" id="nodes-toolbar-tab" onclick="toggleNodesToolbar()" aria-controls="nodes-toolbar-panel" aria-expanded="false">Herramientas</button>
+        <div class="nodes-toolbar-panel" id="nodes-toolbar-panel">
+          <button class="btn" id="btn-add-action" onclick="addNode('action')">+ Acción</button>
+          <button class="btn" id="btn-add-decision" onclick="addNode('decision')">+ Decisión</button>
+          <button class="btn" id="btn-add-conector" onclick="addNode('conector')">+ Conector</button>
+          <button class="btn-clear nodes-toolbar-clear" onclick="clearNodes()">Limpiar nodos</button>
+        </div>
+      </div>
     </div>
     <button class="btn btn-primary" onclick="generateXML()">Generar XML Draw.io</button>
   </div>
@@ -122,12 +148,5 @@ FIN" oninput="saveSession()"></textarea>
 </div>
 
 <script src="/visualgrama_xml_generator.js"></script>
-
-<footer class="app-footer">
-  <img src="/foscal.png" alt="Clínica Foscal" class="app-footer-logo">
-  <p class="app-footer-text">
-    Gerencia de Mejoramiento y Riesgo
-  </p>
-</footer>
 </body>
 </html>
