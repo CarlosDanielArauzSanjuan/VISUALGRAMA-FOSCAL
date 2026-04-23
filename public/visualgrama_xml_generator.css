@@ -204,20 +204,8 @@ textarea {
   #tab-import, #tab-config, #tab-nodes, #tab-output { padding: 24px; }
 }
 #tab-nodes {
-  max-height: calc(100vh - 190px);
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-@supports (height: 100dvh) {
-  #tab-nodes { max-height: calc(100dvh - 190px); }
-}
-@media (max-width: 599px) {
-  #tab-nodes { max-height: calc(100vh - 150px); }
-}
-@supports (height: 100dvh) {
-  @media (max-width: 599px) {
-    #tab-nodes { max-height: calc(100dvh - 150px); }
-  }
+  max-height: none;
+  overflow: visible;
 }
 
 /* ── TAB 1 (IMPORT) SPLIT ────────────────────────────────────── */
