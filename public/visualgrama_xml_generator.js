@@ -1261,7 +1261,8 @@ function renderResponsablesBadges() {
     <span class="resp-badge ${responsableActivo === i ? 'active' : ''}"
       onclick="seleccionarResponsable(${i})"
       title="${a.name}">
-      ${a.name.length > 18 ? a.name.substring(0,16)+'…' : a.name}
+      <span class="resp-badge-text">${a.name.length > 18 ? a.name.substring(0,16)+'…' : a.name}</span>
+      ${a.name.length > 18 ? `<span class="resp-badge-full">${a.name}</span>` : ''}
       <span class="resp-remove" onclick="event.stopPropagation();removeResponsable(${i})">✕</span>
     </span>`).join('');
 }
@@ -1362,7 +1363,21 @@ function insertSnippetConector() {
   insertSnippet(`\n[${letra}].\nir a `);
   renumerarConectores();
 }
-
+// ── FLUJO TOOLBAR (Tab 1) ─────────────────────────────────────────
+let flujoToolbarOpen = false;
+function setFlujoToolbarOpen(open) {
+  const drawer = document.getElementById('flujo-toolbar-drawer');
+  const tab = document.getElementById('flujo-toolbar-tab');
+  if (!drawer || !tab) return;
+  flujoToolbarOpen = !!open;
+  drawer.classList.toggle('open', flujoToolbarOpen);
+  tab.setAttribute('aria-expanded', flujoToolbarOpen ? 'true' : 'false');
+  tab.textContent = flujoToolbarOpen ? 'Cerrar' : 'Flujo';
+  tab.title = flujoToolbarOpen ? 'Ocultar herramientas' : 'Mostrar herramientas de flujo';
+}
+function toggleFlujoToolbar() {
+  setFlujoToolbarOpen(!flujoToolbarOpen);
+}
 // ── EJEMPLO ───────────────────────────────────────────────────────
 function cargarEjemplo() {
   const ejemplo = `INICIO
@@ -1522,6 +1537,7 @@ function aplicarAutocomplete(valor, esActor) {
 window.addEventListener('load',()=>{
   const restored = loadSession();
   setImportSplitExpanded(false);
+  setFlujoToolbarOpen(false);
   setNodesToolbarOpen(false);
   renderResponsablesBadges();
   updateCapacityUI();
