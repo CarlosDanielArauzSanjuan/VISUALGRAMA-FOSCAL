@@ -1046,7 +1046,7 @@ hr {
 
 /* Colores por tipo */
 .kanban-cell.type-action     { background: #dce8f5; }
-.kanban-cell.type-decision   { background: #fff3cd; }
+.kanban-cell.type-decision   { background: #fef1c6; }
 .kanban-cell.type-terminator { background: #d4edda; }
 .kanban-cell.type-conector   { background: var(--muted); }
 
@@ -1072,7 +1072,7 @@ hr {
   height: 20px;
   border-radius: 50%;
   background: var(--fg);
-  color: #fff;
+  color: #ffffff;
   font-size: 7.5pt;
   font-weight: 800;
   display: flex;
@@ -1245,7 +1245,7 @@ hr {
   width: 100% !important;
   background: #111827 !important;
   border: 2px solid #2d3748 !important;
-  color: #e2e8f0 !important;
+  color: #ffffff !important;
   padding: 9px 12px !important;
   font-family: 'Space Grotesk', monospace !important;
   font-size: 10pt !important;
@@ -1290,7 +1290,7 @@ hr {
 .ned-btn--primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: #ffffff;
   box-shadow: 0 0 12px rgba(59,130,246,0.4);
 }
 .ned-btn--primary:hover {
@@ -1498,5 +1498,167 @@ hr {
   }
   .kanban-cell-drag {
     display: none;
+  }
+}
+  .snippet-badge {
+    background:#0a1a0a;color:#00ff41;border:2px solid #00ff41;
+    padding:4px 10px;font-family:'JetBrains Mono',monospace;
+    font-size:8.5pt;font-weight:700;letter-spacing:0.04em;cursor:pointer;
+  }
+  .snippet-badge:hover { background:#00ff41; color:#000; 
+  }
+  #autocomplete-list div:hover { background:#ffffff; }
+
+  /* ── TAB 1 NUEVO LAYOUT ──────────────────────────────────────── */
+.tab1-top {
+  margin-bottom: 12px;
+}
+.tab1-top label {
+  font-size: 9pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  display: block;
+}
+.tab1-top input {
+  margin-bottom: 0;
+  max-width: 500px;
+}
+
+.tab1-toolbar {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 0;
+  border: 4px solid var(--fg);
+  box-shadow: var(--shadow-xs);
+  margin-bottom: 14px;
+  min-height: 110px;
+}
+
+.tab1-col {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tab1-col--flujo {
+  border-right: 4px solid var(--fg);
+  background: #b8b9ba;
+}
+
+.tab1-col--responsables {
+  background: #b8b9ba;
+}
+
+.tab1-col-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 7.5pt;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #000000;
+}
+
+.tab1-col-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tab1-flujo-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.tab1-flujo-badges .snippet-badge {
+  display: block;
+  text-align: center;
+}
+
+.responsables-badges {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  align-content: start;
+}
+
+.resp-badge {
+  background: #0a0a14;
+  color: #ffffff;
+  border: 2px solid #2d3748;
+  padding: 5px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.1s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  position: relative;
+}
+.resp-badge:hover {
+  background: #1a1a2e;
+  border-color: var(--accent);
+  color: #fff;
+}
+.resp-badge.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(59,130,246,0.4);
+}
+.resp-badge .resp-remove {
+  display: none;
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 12pt;
+  color: #ff0000;
+  line-height: 1;
+}
+.resp-badge:hover .resp-remove {
+  display: inline;
+}
+
+.btn-add-resp {
+  background: #0a0a13;
+  border: 2px solid #00ff41;
+  color: #00ff41;
+  padding: 3px 8px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.1s;
+  white-space: nowrap;
+}
+.btn-add-resp:hover {
+  border-color: var(--accent);
+  color: #000000;
+  background: rgba(1, 96, 250, 0.15);
+}
+
+@media (max-width: 600px) {
+  .tab1-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .tab1-col--flujo {
+    border-right: none;
+    border-bottom: 4px solid var(--fg);
+  }
+  .tab1-flujo-badges {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .tab1-flujo-badges .snippet-badge {
+    display: inline-block;
   }
 }

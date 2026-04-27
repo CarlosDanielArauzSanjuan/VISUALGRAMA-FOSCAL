@@ -88,18 +88,16 @@ function updateCapacityUI() {
 
 // ── NAVEGACIÓN ────────────────────────────────────────────────────
 function showTab(t) {
-  ['import','config','nodes','output'].forEach(x => {
+  ['import','nodes','output'].forEach(x => {
     document.getElementById('tab-'+ x).classList.toggle('hidden', x !== t);
     document.getElementById('btn-tab-'+ x).classList.toggle('active', x === t);
   });
-  if (t === 'nodes')  { renderNodes();  updateCapacityUI(); setNodesToolbarOpen(nodesToolbarOpen); }
-  if (t === 'config') { renderActors(); calcMetrics(); updateCapacityUI(); }
+  if (t === 'nodes')  { renderNodes(); updateCapacityUI(); setNodesToolbarOpen(nodesToolbarOpen); }
 }
-function syncConfigAndContinue() {
-  document.querySelectorAll('#actors-list .actor-row input').forEach((inp, i) => {
-    if (actors[i]) actors[i].name = inp.value.trim() || actors[i].name;
-  });
-  updateNodesActors(); calcMetrics(); saveSession(); showTab('nodes');
+
+function continuarAActividades() {
+  saveSession();
+  showTab('nodes');
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────
@@ -287,14 +285,12 @@ function procesarTexto(autoAdvance = true) {
 if (!logs.some(l=>l.level==='err')) {
   const btnC = document.getElementById('btn-continuar-tab2');
   if (btnC) { btnC.disabled = false; btnC.style.opacity = '1'; }
-  if (autoAdvance) showTab('config');
+  renderResponsablesBadges();
+  if (autoAdvance) showTab('nodes');
 }
 }
 function soloExtraer() {
   procesarTexto(false);
-}
-function continuarAConfig() {
-  showTab('config');
 }
 
 function renderLog(logs) {
@@ -342,7 +338,7 @@ const CONN_SIZE = 20;
 const FIG_MIN = {
   action:     { w: 80, h: 40 },
   decision:   { w:100, h: 40 },
-  terminator: { w: 60, h: 20 },
+  terminator: { w: 60, h: 40 },
   conector:   { w: 20, h: 20 },
 };
 
@@ -395,11 +391,11 @@ function calcPages(totalFlowNodes) {
 function figSize(type, RH, NW) {
   const CONN_S = CONN_SIZE;
   if (type === 'conector')   return { w: CONN_S, h: CONN_S };
-  if (type === 'terminator') return { w: 60, h: 20 };
+  if (type === 'terminator') return { w: 60, h: 40 };
   // action y decision
   const minH = (RH === 50) ? 30 : FIG_MIN[type].h;
   const minW = FIG_MIN[type].w;
-  const MAX_FIG_W = 180;
+  const MAX_FIG_W = 200;
   return { w: Math.min(Math.max(NW, minW), MAX_FIG_W), h: Math.max(minH, Math.min(minH, RH - 20)) };
 }
 
@@ -423,11 +419,13 @@ function getMetrics(flowNodesForPage, actorCount) {
 }
 
 function calcMetrics() {
+  const el = document.getElementById('metrics-display');
+  if (!el) return;
   const flowCount = nodes.filter(n => n.type==='action' || n.type==='decision').length;
   const pages = calcPages(flowCount);
   const pageSize = pages[0] || flowCount || 6;
   const m = getMetrics(pageSize, actors.length);
-  document.getElementById('metrics-display').innerHTML = `
+  el.innerHTML = `
     <div class="metric"><div class="val">${m.CW}</div><div class="lbl">Ancho Carril (px)</div></div>
     <div class="metric"><div class="val">${m.RH}</div><div class="lbl">Alto Fila (px)</div></div>
     <div class="metric"><div class="val">${m.NW}×${m.NH}</div><div class="lbl">Tamaño Nodo (px)</div></div>
@@ -437,13 +435,14 @@ function calcMetrics() {
 // ── RESPONSABLES ──────────────────────────────────────────────────
 function renderActors() {
   const el = document.getElementById('actors-list');
+  if (!el) { updateCapacityUI(); return; }
   el.innerHTML = actors.map((a,i) => `
     <div class="actor-row">
       <input value="${a.name}" placeholder="Nombre actor ${i+1}"
-        onchange="actors[${i}].name=this.value;updateNodesActors();calcMetrics();saveSession();">
+        onchange="actors[${i}].name=this.value;updateNodesActors();saveSession();">
       ${actors.length>1?`<button class="btn btn-remove" onclick="removeActor(${i})" title="Eliminar responsable" aria-label="Eliminar responsable"></button>`:''}
     </div>`).join('');
-  calcMetrics(); updateCapacityUI();
+  updateCapacityUI();
 }
 function addActor() {
   if (actors.length >= MAX_ACTORS) { showToast(`⚠ Límite: máximo ${MAX_ACTORS} responsables.`); return; }
@@ -1011,8 +1010,8 @@ function generateXML() {
     const termX0     = snap(termMxPx);
     const termRow0Y  = snap(HEADER_H + 0 * m.RH);
     const termRowBotY= snap(HEADER_H + (pageFlowCount + 1) * m.RH);
-    const labelTop   = pg === 0 ? 'Inicio' : `Viene de pág. ${pg}`;
-    const labelBot   = pg === pageCount-1 ? 'Fin' : `Continúa en pág. ${pg+2}`;
+    const labelTop = pg === 0 ? 'INICIO' : `${pg}`;
+    const labelBot = pg === pageCount-1 ? 'FIN' : `${pg+2}`;
     const styleTop   = pg === 0            ? termStyle : offPageStyle;
     const styleBot   = pg === pageCount-1  ? termStyle : offPageStyle;
 
@@ -1036,7 +1035,7 @@ function generateXML() {
 
     // Headers de actores
     actors.forEach((a,ai)=>{
-      fullXml += `\n        <mxCell id="hdr_${pg}_${ai}" value="${esc(a.name)}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontStyle=1;fontSize=11;fontFamily=Arial Narrow;fontColor=#333333;" vertex="1" parent="1">\n          <mxGeometry x="${snap(ai*m.CW)}" y="0" width="${m.CW}" height="${HEADER_H}" as="geometry"/>\n        </mxCell>`;
+      fullXml += `\n        <mxCell id="hdr_${pg}_${ai}" value="${esc(a.name.toUpperCase())}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontStyle=1;fontSize=11;fontFamily=Arial Narrow;fontColor=#333333;" vertex="1" parent="1">\n          <mxGeometry x="${snap(ai*m.CW)}" y="0" width="${m.CW}" height="${HEADER_H}" as="geometry"/>\n        </mxCell>`;
     });
 
     // Línea separadora header
@@ -1056,11 +1055,11 @@ function generateXML() {
       const fs2=p.fw, fh2=p.fh;
       const drawX=snap(p.Xnode);
       const drawY=snap(p.Ynode + offsetY);
-      const textSz=(n.type!=='conector'&&n.label.length>30)?8:10;
+      const textSz=(n.type!=='conector'&&n.label.length>60)?8:10;
       let style='';
 
       if (n.type==='terminator') {
-        style=`shape=mxgraph.flowchart.terminator;fillColor=none;strokeColor=#00B400;strokeWidth=2;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;`;
+        style=`shape=mxgraph.flowchart.label;fillColor=none;strokeColor=#00B400;strokeWidth=2;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;`;
       } else if (n.type==='decision') {
         style=`shape=rhombus;perimeter=rhombusPerimeter;fillColor=none;strokeColor=#f19a43;strokeWidth=2;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;`;
       } else if (n.type==='conector') {
@@ -1074,7 +1073,9 @@ function generateXML() {
       // Marcador de secuencia (número del paso)
       if (n.type!=='terminator'&&n.type!=='conector') {
         const seq=nodes.slice(0,i+1).filter(x=>x.type==='action'||x.type==='decision').length;
-        fullXml += `\n    <mxCell id="marker_${markerIdCtr++}" value="${seq}." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontFamily=Arial Narrow;fontColor=#333333;fontStyle=1;" vertex="1" parent="1">\n      <mxGeometry x="${snap(drawX+fs2-16)}" y="${snap(drawY-20)}" width="16" height="16" as="geometry"/>\n    </mxCell>`;
+        fullXml += `\n    <mxCell id="marker_${markerIdCtr++}" value="${seq}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontFamily=Arial Narrow;fontColor=#333333;fontStyle=1;" vertex="1" parent="1">\n      
+        <mxGeometry x="${snap(drawX+fs2-16)}" y="${snap(drawY-20)}" width="16" height="16" as="geometry"/>\n    
+        </mxCell>`;
       }
 
       // Par de entrada del conector
@@ -1235,11 +1236,286 @@ function showCopyMsg(msg) {
   const el=document.getElementById('copy-msg'); el.textContent=msg; el.style.display='block';
   setTimeout(()=>{el.style.display='none';},3500);
 }
+// ── SNIPPET BADGES ────────────────────────────────────────────────
+let responsableActivo = null;
 
+function renderResponsablesBadges() {
+  const el = document.getElementById('responsables-badges');
+  if (!el) return;
+  if (actors.length === 0) {
+    el.innerHTML = '<span style="font-size:8pt;color:#555;font-family:Space Grotesk,sans-serif;">Sin responsables</span>';
+    return;
+  }
+  el.innerHTML = actors.map((a, i) => `
+    <span class="resp-badge ${responsableActivo === i ? 'active' : ''}"
+      onclick="seleccionarResponsable(${i})"
+      title="${a.name}">
+      ${a.name.length > 18 ? a.name.substring(0,16)+'…' : a.name}
+      <span class="resp-remove" onclick="event.stopPropagation();removeResponsable(${i})">✕</span>
+    </span>`).join('');
+}
+
+function seleccionarResponsable(i) {
+  responsableActivo = (responsableActivo === i) ? null : i;
+  renderResponsablesBadges();
+  if (responsableActivo !== null) {
+    insertSnippet(`(${actors[responsableActivo].name})`);
+  }
+}
+
+function addResponsable() {
+  if (actors.length >= MAX_ACTORS) { showToast(`⚠ Límite: máximo ${MAX_ACTORS} responsables.`); return; }
+  const nombre = prompt('Nombre del responsable:');
+  if (!nombre || !nombre.trim()) return;
+  actors.push({ name: nombre.trim() });
+  responsableActivo = actors.length - 1;
+  renderResponsablesBadges();
+  saveSession();
+}
+
+function removeResponsable(i) {
+  if (actors.length <= 1) { showAlert('Debe haber al menos un responsable.'); return; }
+  actors.splice(i, 1);
+  if (responsableActivo >= actors.length) responsableActivo = actors.length - 1;
+  updateNodesActors();
+  renderResponsablesBadges();
+  saveSession();
+}
+
+function getActorActivo() {
+  if (responsableActivo !== null && actors[responsableActivo]) return actors[responsableActivo].name;
+  if (actors.length > 0) return actors[0].name;
+  return 'ACTOR';
+}
+
+function getNextStepNum() {
+  const ta = document.getElementById('inputText');
+  const matches = ta.value.match(/^(\d+)\./gm);
+  if (!matches || matches.length === 0) return 1;
+  return Math.max(...matches.map(m => parseInt(m))) + 1;
+}
+
+function getNextConnectorLetter() {
+  const ta = document.getElementById('inputText');
+  const matches = ta.value.match(/\[([A-Z])\]\./g);
+  if (!matches || matches.length === 0) return 'A';
+  const letters = matches.map(m => m.replace(/[\[\].]/g, ''));
+  const last = letters.sort().pop();
+  const next = String.fromCharCode(last.charCodeAt(0) + 1);
+  return next > 'Z' ? 'A' : next;
+}
+
+function renumerarPasos() {
+  const ta = document.getElementById('inputText');
+  let n = 1;
+  ta.value = ta.value.replace(/^(\d+)\./gm, () => `${n++}.`);
+  saveSession();
+}
+
+function renumerarConectores() {
+  const ta = document.getElementById('inputText');
+  const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  let idx = 0;
+  const mapaLetras = {};
+  ta.value = ta.value.replace(/\[([A-Z])\]/g, (match, letra) => {
+    if (mapaLetras[letra] === undefined) {
+      mapaLetras[letra] = letras[idx++] || letra;
+    }
+    return `[${mapaLetras[letra]}]`;
+  });
+  saveSession();
+}
+
+function insertSnippet(text) {
+  const ta = document.getElementById('inputText');
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  ta.value = ta.value.substring(0, start) + text + ta.value.substring(end);
+  ta.selectionStart = ta.selectionEnd = start + text.length;
+  ta.focus();
+  saveSession();
+}
+
+function insertSnippetAccion() {
+  const n = getNextStepNum();
+  const actor = getActorActivo();
+  insertSnippet(`\n${n}. (${actor}), Descripción`);
+  renumerarPasos();
+}
+
+function insertSnippetDecision() {
+  const n = getNextStepNum();
+  const actor = getActorActivo();
+  insertSnippet(`\n${n}. (${actor}), ¿Decisión?\nsi: ir a \nno: ir a `);
+  renumerarPasos();
+}
+
+function insertSnippetConector() {
+  const letra = getNextConnectorLetter();
+  insertSnippet(`\n[${letra}].\nir a `);
+  renumerarConectores();
+}
+
+// ── EJEMPLO ───────────────────────────────────────────────────────
+function cargarEjemplo() {
+  const ejemplo = `INICIO
+1. (Presidente CEI-FOSCAL), Evaluar necesidades de miembros
+
+2. (Presidente CEI-FOSCAL), Requiere Aumentar Número de miembros?
+SI ir a 4
+NO ir a [A]
+
+[A]. 
+ir a fin
+
+3. (Presidente CEI-FOSCAL), Es una renuncai, fin periodo, sustitucion, descalificación?
+SI ir a 4
+NO ir a [A]
+
+4. (Presidente CEI-FOSCAL), Efectuar comvocatoria para nuevos miembros
+
+5. (Asistente administrativa y/o profesional administrativa del CEI), Recibir documentos de postulación
+
+6. (Profesional administrativa del CEI), Evaluar documentos radicados
+
+7. (Presidente CEI-FOSCAL), Presentar candidatos para consenso
+
+8. (Presidente CEI-FOSCAL), Efectuar entrevistas para selección de candidatos
+
+9. (Presidente CEI-FOSCAL), Tomar decisión en consenso
+
+10. (Presidente CEI-FOSCAL),Efectuar carta de notificación de nombramiento
+
+11. (Miembro Nuevo del CEI-FOSCAL), Entregar acuerdo de confidencialidad
+
+12. (Presidente CEI-FOSCAL), Realizar inducción
+
+13. (Profesional administrativa del CEI), Entregar documentos para lectura cumplimiento de entrenamiento
+
+14. (Profesional administrativa del CEI), Actualizar listado nuevos miembros del comité
+
+15. (Secretaria administrativa), Archiva documentación, informa el ingreso/renuncia de miembros del CEI-Foscal
+FIN`;
+  showConfirm('¿Reemplazar el texto actual con el ejemplo?', () => {
+    document.getElementById('inputText').value = ejemplo;
+    saveSession();
+  });
+}
+
+// ── GUARDAR / BIBLIOTECA ──────────────────────────────────────────
+function guardarTexto() {
+  const texto = document.getElementById('inputText').value.trim();
+  if (!texto) { showAlert('No hay texto para guardar.'); return; }
+  const nombre = prompt('Nombre para este guardado:');
+  if (!nombre || !nombre.trim()) return;
+  const biblioteca = JSON.parse(localStorage.getItem('flujograma_biblioteca') || '[]');
+  biblioteca.push({ nombre: nombre.trim(), texto, fecha: new Date().toLocaleDateString() });
+  localStorage.setItem('flujograma_biblioteca', JSON.stringify(biblioteca));
+  showToast('✓ Guardado: ' + nombre.trim());
+}
+
+function abrirBiblioteca() {
+  const biblioteca = JSON.parse(localStorage.getItem('flujograma_biblioteca') || '[]');
+  const lista = document.getElementById('biblioteca-list');
+  const overlay = document.getElementById('biblioteca-overlay');
+  if (biblioteca.length === 0) {
+    lista.innerHTML = '<p style="font-size:9.5pt;color:#666;font-family:Space Grotesk,sans-serif;">No hay guardados aún.</p>';
+  } else {
+    lista.innerHTML = biblioteca.map((item, i) => `
+      <div style="border:3px solid #000;padding:10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div>
+          <div style="font-weight:700;font-size:9.5pt;">${item.nombre}</div>
+          <div style="font-size:8pt;color:#666;">${item.fecha}</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn" style="margin:0;padding:5px 10px;font-size:8pt;" onclick="cargarDeBiblioteca(${i})">Cargar</button>
+          <button class="btn" style="margin:0;padding:5px 10px;font-size:8pt;border-color:#ff3333;color:#ff3333;" onclick="eliminarDeBiblioteca(${i})">✕</button>
+        </div>
+      </div>`).join('');
+  }
+  overlay.style.display = 'flex';
+}
+
+function cerrarBiblioteca() {
+  document.getElementById('biblioteca-overlay').style.display = 'none';
+}
+
+function cargarDeBiblioteca(i) {
+  const biblioteca = JSON.parse(localStorage.getItem('flujograma_biblioteca') || '[]');
+  if (!biblioteca[i]) return;
+  showConfirm(`¿Cargar "${biblioteca[i].nombre}"? Se reemplazará el texto actual.`, () => {
+    document.getElementById('inputText').value = biblioteca[i].texto;
+    saveSession(); cerrarBiblioteca();
+  });
+}
+
+function eliminarDeBiblioteca(i) {
+  const biblioteca = JSON.parse(localStorage.getItem('flujograma_biblioteca') || '[]');
+  biblioteca.splice(i, 1);
+  localStorage.setItem('flujograma_biblioteca', JSON.stringify(biblioteca));
+  abrirBiblioteca();
+}
+
+// ── AUTOCOMPLETADO ────────────────────────────────────────────────
+function initAutocomplete() {
+  const ta = document.getElementById('inputText');
+  const list = document.getElementById('autocomplete-list');
+  if (!ta || !list) return;
+  ta.addEventListener('input', () => { saveSession(); checkAutocomplete(); });
+  ta.addEventListener('keydown', e => { if (e.key === 'Escape') list.style.display = 'none'; });
+  document.addEventListener('click', e => { if (!list.contains(e.target) && e.target !== ta) list.style.display = 'none'; });
+}
+
+function checkAutocomplete() {
+  const ta = document.getElementById('inputText');
+  const list = document.getElementById('autocomplete-list');
+  const textoBefore = ta.value.substring(0, ta.selectionStart);
+  const lineActual = textoBefore.split('\n').pop();
+  const mActor = lineActual.match(/\(\s*([^)]*)$/);
+  const mIr = lineActual.match(/ir\s+a\s+(\w*)$/i);
+  let sugerencias = [];
+
+  if (mActor && mActor[1].length > 0) {
+    const query = mActor[1].toLowerCase();
+    const actores = [...new Set(ta.value.match(/\(\s*([^)]+?)\s*\)/g)?.map(m => m.replace(/[()]/g,'').trim()) || [])];
+    sugerencias = actores.filter(a => a.toLowerCase().includes(query));
+  } else if (mIr) {
+    const query = mIr[1];
+    const pasos = [...new Set([...ta.value.matchAll(/^(\d+)\./gm)].map(m => m[1]))];
+    sugerencias = pasos.filter(p => p.startsWith(query));
+  }
+
+  if (!sugerencias.length) { list.style.display = 'none'; return; }
+
+  const rect = ta.getBoundingClientRect();
+  list.style.left = rect.left + 'px';
+  list.style.top = (rect.bottom - 2) + 'px';
+  list.style.width = '220px';
+  list.innerHTML = sugerencias.map(s =>
+    `<div style="padding:7px 12px;cursor:pointer;border-bottom:2px solid #eee;" onmousedown="aplicarAutocomplete('${s}',${!!mActor})">${s}</div>`
+  ).join('');
+  list.style.display = 'block';
+}
+
+function aplicarAutocomplete(valor, esActor) {
+  const ta = document.getElementById('inputText');
+  const pos = ta.selectionStart;
+  const antes = ta.value.substring(0, pos);
+  const despues = ta.value.substring(pos);
+  const nuevo = esActor
+    ? antes.replace(/\(\s*[^)]*$/, '(' + valor + ')')
+    : antes.replace(/ir\s+a\s+\w*$/i, 'ir a ' + valor);
+  ta.value = nuevo + despues;
+  ta.selectionStart = ta.selectionEnd = nuevo.length;
+  ta.focus();
+  document.getElementById('autocomplete-list').style.display = 'none';
+  saveSession();
+}
 // ── INIT ──────────────────────────────────────────────────────────
 window.addEventListener('load',()=>{
-  const restored=loadSession(); calcMetrics();
+  const restored = loadSession();
   setImportSplitExpanded(false);
   setNodesToolbarOpen(false);
-  if (restored) { renderActors(); updateCapacityUI(); }
+  renderResponsablesBadges();
+  updateCapacityUI();
+  initAutocomplete();
 });
