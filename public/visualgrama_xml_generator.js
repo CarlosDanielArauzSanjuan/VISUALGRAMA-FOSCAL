@@ -142,6 +142,7 @@ function procesarTexto(autoAdvance = true) {
 
   const isInicio = l => /^inicio[:\s.]*$/i.test(l);
   const isFin    = l => /^fin[:\s.]*$/i.test(l);
+  const isIrAFin = l => /\bir\s+a\s+fin\b/i.test(l);
 
   function matchStep(line) {
     const m = line.match(/^(\d{1,3})\s*[.):\-]?\s+(.+)$/);
@@ -155,7 +156,7 @@ function procesarTexto(autoAdvance = true) {
     return null;
   }
   function normActor(s) {
-    return s.replace(/[()]/g,'').trim().split(/\s+/).map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+    return s.replace(/[()]/g,'').trim().toUpperCase();
   }
   const isDecision = desc => desc.includes('?');
   function cleanDecisionLabel(desc) {
@@ -175,7 +176,7 @@ function procesarTexto(autoAdvance = true) {
     const m = line.match(/^(s[ií]|no)\s*[:\-]?\s*(.+)$/i);
     if (!m) return null;
     const branch = m[1].toLowerCase().replace('í','i');
-    const rest   = m[2].trim().replace(/^ir\s*a(?:l\s+paso|l)?\s+/i,'').trim();
+    const rest   = m[2].trim().replace(/^ir\s+a\s+/i,'').trim();
     const target = extractGotoTarget(rest);
     return target !== null ? { branch, target } : null;
   }
@@ -194,14 +195,24 @@ function procesarTexto(autoAdvance = true) {
   for (let li = 0; li < rawLines.length; li++) {
     const line = rawLines[li];
 
+   if (hasFin && !isFin(line)) {
+      addLog('warn',`L${li+1}: Línea ignorada — el texto no puede continuar después de FIN. <a href="#" onclick="(function(){const ta=document.getElementById('inputText');const lines=ta.value.split('\\n');lines.splice(${li},1);ta.value=lines.join('\\n');saveSession();document.getElementById('parse-log').innerHTML='';soloExtraer();})();return false;" style="color:#fbbf24;text-decoration:underline;">Eliminar línea</a>`);
+      continue;
+    }
     if (isInicio(line)) {
-      if (hasInicio) { addLog('warn',`L${li+1}: INICIO duplicado, ignorado.`); continue; }
+      if (hasInicio) {
+        addLog('warn',`L${li+1}: INICIO duplicado — solo se permite uno. <a href="#" onclick="(function(){const ta=document.getElementById('inputText');const lines=ta.value.split('\\n');lines.splice(${li},1);ta.value=lines.join('\\n');saveSession();document.getElementById('parse-log').innerHTML='';soloExtraer();})();return false;" style="color:#fbbf24;text-decoration:underline;">Eliminar duplicado</a>`);
+        continue;
+      }
       hasInicio = true;
       tempNodes.push({ type:'terminator', label:'Inicio', actor:'', siTarget:undefined, noTarget:undefined, target:undefined });
       addLog('ok',`L${li+1}: INICIO detectado.`); continue;
     }
     if (isFin(line)) {
-      if (hasFin) { addLog('warn',`L${li+1}: FIN duplicado, ignorado.`); continue; }
+      if (hasFin) {
+        addLog('warn',`L${li+1}: FIN duplicado — solo se permite uno. <a href="#" onclick="(function(){const ta=document.getElementById('inputText');const lines=ta.value.split('\\n');lines.splice(${li},1);ta.value=lines.join('\\n');saveSession();document.getElementById('parse-log').innerHTML='';soloExtraer();})();return false;" style="color:#fbbf24;text-decoration:underline;">Eliminar duplicado</a>`);
+        continue;
+      }
       hasFin = true;
       tempNodes.push({ type:'terminator', label:'Fin', actor:'', siTarget:undefined, noTarget:undefined, target:undefined });
       addLog('ok',`L${li+1}: FIN detectado.`); continue;
@@ -1258,16 +1269,13 @@ function renderResponsablesBadges() {
 function seleccionarResponsable(i) {
   responsableActivo = (responsableActivo === i) ? null : i;
   renderResponsablesBadges();
-  if (responsableActivo !== null) {
-    insertSnippet(`(${actors[responsableActivo].name})`);
-  }
 }
 
 function addResponsable() {
   if (actors.length >= MAX_ACTORS) { showToast(`⚠ Límite: máximo ${MAX_ACTORS} responsables.`); return; }
   const nombre = prompt('Nombre del responsable:');
   if (!nombre || !nombre.trim()) return;
-  actors.push({ name: nombre.trim() });
+  actors.push({ name: nombre.trim().toUpperCase() });
   responsableActivo = actors.length - 1;
   renderResponsablesBadges();
   saveSession();
