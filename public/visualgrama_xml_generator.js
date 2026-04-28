@@ -329,18 +329,18 @@ function renderSummary(flowNodes, connectors, actorsCount, warnings, decisions) 
 // Filas: #nodos de flujo por página (6-16+), Columnas: #responsables (2-8)
 // Formato: [RH, CW]  — Alto fila × Ancho carril
 const DIM_TABLE = {
-  //     2          3          4          5          6          7          8   responsables
-   6: [[100,400],[100,360],[100,270],[100,220],[100,180],[100,150],[100,130]],
-   7: [[100,400],[100,360],[100,270],[100,220],[110,180],[100,150],[100,130]],
-   8: [[100,400],[100,360],[100,270],[100,220],[100,180],[100,150],[100,130]],
-   9: [[ 90,400],[ 90,360],[ 90,270],[ 90,220],[ 90,180],[ 90,150],[ 90,130]],
-  10: [[ 80,400],[ 80,360],[ 80,270],[ 80,220],[ 80,180],[ 80,150],[ 80,130]],
-  11: [[ 70,400],[ 70,360],[ 70,270],[ 70,220],[ 70,180],[ 70,150],[ 70,130]],
-  12: [[ 60,400],[ 60,360],[ 60,270],[ 60,220],[ 60,180],[ 60,150],[ 60,130]],
-  13: [[ 60,400],[ 60,360],[ 60,270],[ 60,220],[ 60,180],[ 60,150],[ 60,130]],
-  14: [[ 50,400],[ 50,360],[ 50,270],[ 50,220],[ 50,180],[ 50,150],[ 50,130]],
-  15: [[ 50,400],[ 50,360],[ 50,270],[ 50,220],[ 50,180],[ 50,150],[ 50,130]],
-  16: [[ 50,400],[ 50,360],[ 50,270],[ 50,220],[ 50,180],[ 50,150],[ 50,130]],
+  //     2          3          4          5          6        7        8         9          100,110  responsables
+   6: [[100,400],[100,360],[100,270],[100,220],[100,180],[100,150],[100,130],[100,120]], // 
+   7: [[100,400],[100,360],[100,270],[100,220],[110,180],[100,150],[100,130],[100,120]],
+   8: [[100,400],[100,360],[100,270],[100,220],[100,180],[100,150],[100,130],[100,120]],
+   9: [[ 90,400],[ 90,360],[ 90,270],[ 90,220],[ 90,180],[ 90,150],[ 90,130],[ 90,120]],
+  10: [[ 80,400],[ 80,360],[ 80,270],[ 80,220],[ 80,180],[ 80,150],[ 80,130],[ 80,120]],
+  11: [[ 70,400],[ 70,360],[ 70,270],[ 70,220],[ 70,180],[ 70,150],[ 70,130],[ 70,120]],
+  12: [[ 60,400],[ 60,360],[ 60,270],[ 60,220],[ 60,180],[ 60,150],[ 60,130],[ 60,120]],
+  13: [[ 60,400],[ 60,360],[ 60,270],[ 60,220],[ 60,180],[ 60,150],[ 60,130],[ 60,120]],
+  14: [[ 50,400],[ 50,360],[ 50,270],[ 50,220],[ 50,180],[ 50,150],[ 50,130],[ 50,120]],
+  15: [[ 50,400],[ 50,360],[ 50,270],[ 50,220],[ 50,180],[ 50,150],[ 50,130],[ 50,120]],
+  16: [[ 50,400],[ 50,360],[ 50,270],[ 50,220],[ 50,180],[ 50,150],[ 50,130],[ 50,120]],
 };
 const HEADER_H  = 40;
 const CONN_SIZE = 20;
@@ -353,36 +353,24 @@ const FIG_MIN = {
   conector:   { w: 20, h: 20 },
 };
 
-/**
- * Devuelve [RH, CW] para una cantidad de nodos de flujo y actores dada.
- * Para nodos de flujo > 16 usa la fila 16 (las dimensiones más ajustadas)
- * porque la paginación garantiza que cada página tiene ≤ 16 nodos.
- */
 function lookupDim(flowNodesForPage, actorCount) {
   const row = Math.min(Math.max(flowNodesForPage, 6), 16);
   const col = Math.min(Math.max(actorCount, 2), 8) - 2; // índice 0-6
   return DIM_TABLE[row][col];
 }
 
-/**
- * Calcula la distribución de páginas para n nodos de flujo
- * (solo action+decision), reservando filas estructurales por página.
- */
 function calcPages(totalFlowNodes) {
   if (totalFlowNodes <= 0) return [0];
   if (totalFlowNodes <= MAX_FLOW_NODES_PER_PAGE) return [totalFlowNodes];
 
-  // Número de páginas: ceil(n / 14)
   const numPages = Math.ceil(totalFlowNodes / MAX_FLOW_NODES_PER_PAGE);
 
   if (numPages === 2) {
-    // Solo dos páginas: repartir directamente
     const ultima    = Math.floor(totalFlowNodes / 2);
     const penultima = totalFlowNodes - ultima;
     return [penultima, ultima];
   }
 
-  // 3+ páginas: las anteriores a las dos últimas se llenan con 14
   const fullPages = numPages - 2;
   const sobrante  = totalFlowNodes - fullPages * MAX_FLOW_NODES_PER_PAGE;
   const ultima    = Math.floor(sobrante / 2);
@@ -395,32 +383,21 @@ function calcPages(totalFlowNodes) {
   return dist;
 }
 
-/**
- * Calcula el tamaño real (w, h) de una figura respetando
- * los mínimos y el ajuste especial para RH=50.
- */
 function figSize(type, RH, NW) {
   const CONN_S = CONN_SIZE;
   if (type === 'conector')   return { w: CONN_S, h: CONN_S };
   if (type === 'terminator') return { w: 60, h: 40 };
-  // action y decision
   const minH = (RH === 50) ? 30 : FIG_MIN[type].h;
   const minW = FIG_MIN[type].w;
   const MAX_FIG_W = 200;
   return { w: Math.min(Math.max(NW, minW), MAX_FIG_W), h: Math.max(minH, Math.min(minH, RH - 20)) };
 }
 
-/**
- * Calcula las métricas para la página actual.
- * flowNodesForPage = nodos de flujo en esa página, actorCount = # actores.
- */
 function getMetrics(flowNodesForPage, actorCount) {
   const aCnt = Math.min(Math.max(actorCount, 2), 8);
   const aCntRaw = Math.max(actorCount, 1);
   const [RH, CW_base] = lookupDim(flowNodesForPage, aCnt);
-  // Si sólo hay 1 actor, usar CW de 2 actores pero dividir entre 1
   const CW = (actorCount === 1) ? CW_base * 2 : CW_base;
-  // Tamaño de nodo: ocupa la celda dejando margen 10-20px cada lado
   const marginX = Math.min(20, Math.max(10, snap(Math.round((CW - FIG_MIN.action.w) / 2 / SNAP) * SNAP)));
   const marginY = Math.min(20, Math.max(10, snap(Math.round((RH - FIG_MIN.action.h) / 2 / SNAP) * SNAP)));
   const NW = snap(CW - marginX * 2);
@@ -524,8 +501,7 @@ function renderNodes() {
     updateCapacityUI(); return;
   }
 
-  // ── Construir mapa de conectores referenciados por nodo ───────────
-  const connectorBadges = {}; // nodeIdx → [labelConector, ...]
+  const connectorBadges = {};
   const stepToNodeIdx = {};
   let sc = 0;
   nodes.forEach((n,i) => { if (isFlowType(n.type)) { sc++; stepToNodeIdx[sc]=i; } });
@@ -540,39 +516,26 @@ function renderNodes() {
     }
   });
 
-  // ── Asignar número de paso visible a cada nodo ────────────────────
   let actCounter = 0;
   const stepNums = nodes.map(n => isFlowType(n.type) ? ++actCounter : null);
 
-  // ── Agrupar nodos por actor (columna) ─────────────────────────────
-  // Cada nodo ocupa una fila según su posición global en nodes[]
-  // Filas = posición en el array; columnas = actor
-
-  // Construir matriz: rows x cols donde cada celda tiene el nodeIdx o null
-  // Un nodo aparece en la columna de su actor, en la fila de su posición
   const colCount = actors.length;
-
-  // Mapear actor → columna
   const actorCol = {};
   actors.forEach((a,i) => { actorCol[a.name] = i; });
 
-  // Calcular filas: cada nodo ocupa su propia fila en orden
   const rows = nodes.map((n,i) => {
     const col = actorCol[n.actor] ?? 0;
     return { nodeIdx: i, col };
   });
 
-  // ── Construir tabla HTML ──────────────────────────────────────────
   let html = `<div class="kanban-wrap">
     <div class="kanban-grid" style="grid-template-columns: 40px repeat(${colCount}, 1fr);">`;
 
-  // Header fila vacía (esquina) + headers de actores
   html += `<div class="kanban-corner"></div>`;
   actors.forEach((a,ci) => {
     html += `<div class="kanban-col-header">${a.name}</div>`;
   });
 
-  // Filas de nodos
   rows.forEach((row, rowIdx) => {
     const n = nodes[row.nodeIdx];
     const i = row.nodeIdx;
@@ -581,10 +544,8 @@ function renderNodes() {
     const typeLabel = { action:'Acción', decision:'Decisión', terminator:'Inicio/Fin', conector:'Conector' }[n.type] || n.type;
     const shortLabel = n.label ? (n.label.length>32 ? n.label.substring(0,30)+'…' : n.label) : '';
 
-    // Fila numerada
     html += `<div class="kanban-row-num">${stepNum !== null ? stepNum : '·'}</div>`;
 
-    // Celdas vacías y celda del nodo
     for (let ci=0; ci<colCount; ci++) {
       if (ci === row.col) {
         const isDragOver = kanbanDragOverIdx === i;
@@ -637,7 +598,6 @@ function kanbanDragStart(e, idx) {
   kanbanDragIdx = idx;
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', String(idx));
-  // Guardar posición de scroll del contenedor
   const panel = document.getElementById('tab-nodes');
   if (panel) {
     panel.dataset.scrollTop = panel.scrollTop;
@@ -651,7 +611,6 @@ function kanbanDragStart(e, idx) {
 }
 
 function kanbanDragEnd(e) {
-  // Restaurar scroll
   const panel = document.getElementById('tab-nodes');
   if (panel && panel.dataset.scrollTop !== undefined) {
     panel.scrollTop = parseInt(panel.dataset.scrollTop) || 0;
@@ -665,7 +624,6 @@ function kanbanDragEnd(e) {
   });
 }
 
-
 function kanbanDragOver(e, targetIdx, targetCol) {
   e.preventDefault(); e.dataTransfer.dropEffect = 'move';
   kanbanDragOverIdx = targetIdx;
@@ -678,7 +636,6 @@ function kanbanDragLeave(e) {
 function kanbanDrop(e, targetIdx) {
   e.preventDefault(); e.stopPropagation();
   if (kanbanDragIdx===null || kanbanDragIdx===targetIdx) { kanbanDragEnd(); return; }
-  // Reordenar: mover nodo a posición de target
   nodes.splice(targetIdx, 0, nodes.splice(kanbanDragIdx, 1)[0]);
   kanbanDragIdx = null; kanbanDragOverIdx = null;
   saveSession(); renderNodes(); updateCapacityUI();
@@ -686,10 +643,8 @@ function kanbanDrop(e, targetIdx) {
 function kanbanDropToCell(e, targetIdx, targetCol) {
   e.preventDefault(); e.stopPropagation();
   if (kanbanDragIdx===null) { kanbanDragEnd(); return; }
-  // Cambiar actor del nodo al de la columna destino
   const newActor = actors[targetCol];
   if (newActor) nodes[kanbanDragIdx].actor = newActor.name;
-  // Si además es distinta fila, reordenar
   if (kanbanDragIdx !== targetIdx) {
     nodes.splice(targetIdx, 0, nodes.splice(kanbanDragIdx, 1)[0]);
   }
@@ -796,7 +751,6 @@ function nedSave(i) {
   const noEl    = document.getElementById('ned-no');
   const targetEl= document.getElementById('ned-target');
 
-  // Validar cambio de tipo con límites
   const curIsFlow = isFlowType(nodes[i].type);
   const newIsFlow = isFlowType(newType);
   if (!curIsFlow && newIsFlow && countFlowNodes() >= MAX_FLOW_NODES) {
@@ -878,11 +832,6 @@ function generateXML() {
     if (!actors.some(a=>a.name===nodes[i].actor)) nodes[i].actor=actors[0].name;
   }
 
-  // ── Índice actor → columna ────────────────────────────────────────
-  const actorIndex={};
-  actors.forEach((a,i)=>{ actorIndex[a.name]=i; });
-  const actorCount = actors.length;
-
   // ── Mapa stepNum → índice nodo ────────────────────────────────────
   const stepNumToNodeIdx={}; let seqCounter=0;
   nodes.forEach((n,i)=>{
@@ -893,26 +842,22 @@ function generateXML() {
     }
   });
 
-  // ── resolveTarget ─────────────────────────────────────────────────
-  // FIN/INICIO resuelven a IDs de terminadores automáticos, no a nodos del usuario
-  const resolveTarget = val => {
-    if (val===undefined||val===null||val==='') return null;
-    if (val==='FIN')    return 'term_bot_'+(pageCount-1);  // ID del terminador automático final
-    if (val==='INICIO') return 'term_top_0';               // ID del terminador automático inicial
-    if (typeof val==='object'&&val.stepRef!==undefined) { const idx=stepNumToNodeIdx[val.stepRef]; return idx!==undefined?idx:null; }
-    if (typeof val==='string') { const idx=nodes.findIndex(nx=>nx.type==='conector'&&nx.label===val); return idx!==-1?idx:null; }
-    return null;
-  };
-
   // ── Separar nodos de flujo de conectores ──────────────────────────
   const flowNodeCount = nodes.filter(({type})=>isFlowType(type)).length;
   const pageDistribution = calcPages(flowNodeCount);
   const pageCount = pageDistribution.length;
 
+  // ── resolveTarget ─────────────────────────────────────────────────
+  const resolveTarget = val => {
+    if (val===undefined||val===null||val==='') return null;
+    if (val==='FIN')    return 'term_bot_'+(pageCount-1);
+    if (val==='INICIO') return 'term_top_0';
+    if (typeof val==='object'&&val.stepRef!==undefined) { const idx=stepNumToNodeIdx[val.stepRef]; return idx!==undefined?idx:null; }
+    if (typeof val==='string') { const idx=nodes.findIndex(nx=>nx.type==='conector'&&nx.label===val); return idx!==-1?idx:null; }
+    return null;
+  };
+
   // ── Asignar páginas solo a actividades (action+decision) ──────────
-  // Terminadores del usuario se ignoran para posicionamiento:
-  // fila 0 y fila 15 de cada página son terminadores automáticos.
-  // Conectores heredan página de su nodo huésped.
   const nodePageMap = new Array(nodes.length).fill(0);
   let adIdx=0, pageAccum=0, currentPage=0;
   for (let i=0;i<nodes.length;i++) {
@@ -926,12 +871,9 @@ function generateXML() {
       adIdx++;
     }
   }
-  // Terminadores del usuario → solo para resolver referencias (FIN/INICIO),
-  // no se posicionan: los omitimos del renderizado (se generan automáticamente)
   for (let i=0;i<nodes.length;i++) {
-    if (nodes[i].type==='terminator') nodePageMap[i]=-1; // -1 = no renderizar
+    if (nodes[i].type==='terminator') nodePageMap[i]=-1;
   }
-  // Conectores heredan página de su nodo huésped (ignora terminadores pageMap=-1)
   for (let i=0;i<nodes.length;i++) {
     if (nodes[i].type!=='conector') continue;
     let host=-1;
@@ -951,15 +893,24 @@ function generateXML() {
     const pageNodes = nodes.map((n,i)=>({n,i})).filter(({i})=>nodePageMap[i]===pg);
     const pageFlowCount = pageNodes.filter(({n})=>isFlowType(n.type)).length;
 
+    // ── Actores activos en esta página (solo action+decision) ─────────
+    const pageActorNames = new Set(
+      pageNodes.filter(({n})=>isFlowType(n.type)).map(({n})=>n.actor)
+    );
+    const pageActors = actors.filter(a=>pageActorNames.has(a.name));
+    const pageActorCount = Math.max(pageActors.length, 1);
+    const actorIndexLocal = {};
+    pageActors.forEach((a,li)=>{ actorIndexLocal[a.name]=li; });
+
     const totalFilasPagina = Math.min(16, Math.max(6, pageFlowCount + 2));
-    const m = getMetrics(totalFilasPagina, actorCount);
+    const m = getMetrics(totalFilasPagina, pageActorCount);
 
     const positions = new Array(nodes.length).fill(null);
     let currentRow = 1;
     const nonConnPageNodes = pageNodes.filter(({n})=>n.type!=='conector');
     for (let pi=0; pi<nonConnPageNodes.length; pi++) {
       const {n, i} = nonConnPageNodes[pi];
-      const ai = actorIndex[n.actor] ?? 0;
+      const ai = actorIndexLocal[n.actor] ?? 0;
       if (pi > 0) currentRow++;
       const Xcol  = snap(ai * m.CW);
       const Yrow  = snap(HEADER_H + currentRow * m.RH);
@@ -1003,9 +954,8 @@ function generateXML() {
       pairMap[i] = { pairId:`conn_pair_${pairIdCounter++}`, absX:px, absY:py, label:n.label||'?' };
     });
 
-    const poolW = snap(actorCount * m.CW);
+    const poolW = snap(pageActorCount * m.CW);
     const poolH = snap(HEADER_H + totalFilasPagina * m.RH);
-    // offsetY = 0: cada página tiene su propio sistema de coordenadas
     const offsetY = 0;
 
     const pageName = pageCount > 1 ? `Página ${pg+1}` : 'Página 1';
@@ -1016,9 +966,6 @@ function generateXML() {
     const offPageStyle = `shape=offPageConnector;fillColor=none;strokeColor=#000000;strokeWidth=2;${baseFont}fontSize=10;html=1;whiteSpace=wrap;align=center;`;
     const offPageFs    = { w: 30, h: 30 };
     const termFs     = figSize('terminator', m.RH, m.NW);
-    const termMxPx   = snap(Math.floor((m.CW - termFs.w) / 2 / SNAP) * SNAP);
-    const termMyPx   = snap(Math.floor((m.RH - termFs.h) / 2 / SNAP) * SNAP);
-    const termX0     = snap(termMxPx);
     const termRow0Y  = snap(HEADER_H + 0 * m.RH);
     const termRowBotY= snap(HEADER_H + (pageFlowCount + 1) * m.RH);
     const labelTop = pg === 0 ? 'INICIO' : `${pg}`;
@@ -1044,17 +991,17 @@ function generateXML() {
     // Borde exterior
     fullXml += `\n        <mxCell id="border_${pg}" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;pointerEvents=0;" vertex="1" parent="1">\n          <mxGeometry x="0" y="0" width="${poolW}" height="${poolH}" as="geometry"/>\n        </mxCell>`;
 
-    // Headers de actores
-    actors.forEach((a,ai)=>{
-      fullXml += `\n        <mxCell id="hdr_${pg}_${ai}" value="${esc(a.name.toUpperCase())}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontStyle=1;fontSize=11;fontFamily=Arial Narrow;fontColor=#333333;" vertex="1" parent="1">\n          <mxGeometry x="${snap(ai*m.CW)}" y="0" width="${m.CW}" height="${HEADER_H}" as="geometry"/>\n        </mxCell>`;
+    // Headers de actores (solo los de esta página)
+    pageActors.forEach((a,li)=>{
+      fullXml += `\n        <mxCell id="hdr_${pg}_${li}" value="${esc(a.name.toUpperCase())}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontStyle=1;fontSize=11;fontFamily=Arial Narrow;fontColor=#333333;" vertex="1" parent="1">\n          <mxGeometry x="${snap(li*m.CW)}" y="0" width="${m.CW}" height="${HEADER_H}" as="geometry"/>\n        </mxCell>`;
     });
 
     // Línea separadora header
     fullXml += `\n        <mxCell id="hline_${pg}" value="" style="shape=line;strokeColor=#000000;strokeWidth=1;fillColor=none;horizontal=1;" vertex="1" parent="1">\n          <mxGeometry x="0" y="${HEADER_H}" width="${poolW}" height="2" as="geometry"/>\n        </mxCell>`;
 
-    // Líneas verticales entre carriles
-    for (let ai=1;ai<actorCount;ai++) {
-      fullXml += `\n        <mxCell id="vline_${pg}_${ai}" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;pointerEvents=0;" vertex="1" parent="1">\n          <mxGeometry x="${snap(ai*m.CW)}" y="0" width="1" height="${poolH}" as="geometry"/>\n        </mxCell>`;
+    // Líneas verticales entre carriles (solo actores de esta página)
+    for (let li=1;li<pageActorCount;li++) {
+      fullXml += `\n        <mxCell id="vline_${pg}_${li}" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;pointerEvents=0;" vertex="1" parent="1">\n          <mxGeometry x="${snap(li*m.CW)}" y="0" width="1" height="${poolH}" as="geometry"/>\n        </mxCell>`;
     }
 
     let edgeId      = 500 + pg*1000;
@@ -1084,9 +1031,7 @@ function generateXML() {
       // Marcador de secuencia (número del paso)
       if (n.type!=='terminator'&&n.type!=='conector') {
         const seq=nodes.slice(0,i+1).filter(x=>x.type==='action'||x.type==='decision').length;
-        fullXml += `\n    <mxCell id="marker_${markerIdCtr++}" value="${seq}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontFamily=Arial Narrow;fontColor=#333333;fontStyle=1;" vertex="1" parent="1">\n      
-        <mxGeometry x="${snap(drawX+fs2-16)}" y="${snap(drawY-20)}" width="16" height="16" as="geometry"/>\n    
-        </mxCell>`;
+        fullXml += `\n    <mxCell id="marker_${markerIdCtr++}" value="${seq}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontFamily=Arial Narrow;fontColor=#333333;fontStyle=1;" vertex="1" parent="1">\n      <mxGeometry x="${snap(drawX+fs2-16)}" y="${snap(drawY-20)}" width="16" height="16" as="geometry"/>\n    </mxCell>`;
       }
 
       // Par de entrada del conector
@@ -1097,15 +1042,12 @@ function generateXML() {
     });
 
     // ── Aristas (targets) ─────────────────────────────────────────
-    // Conjunto de nodos que son destino de decisiones (para evitar aristas dobles)
-    // Helper: dado resultado de resolveTarget, devuelve el ID de celda final
     const resolveId = val => {
       if (val === null) return null;
-      if (typeof val === 'string') return val; // ya es un ID directo (term_bot_X, term_top_X)
-      if (val < nodes.length) return nodeIds[val]; // índice numérico → ID de nodo
+      if (typeof val === 'string') return val;
+      if (val < nodes.length) return nodeIds[val];
       return null;
     };
-    // Helper: dado resultado de resolveTarget, devuelve la posición (solo para índices numéricos)
     const resolvePos = val => {
       if (val === null || typeof val === 'string') return null;
       return positions[val] || null;
@@ -1138,10 +1080,10 @@ function generateXML() {
               fullXml+=`\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${siId}" parent="1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="${snap(p.Xnode+p.fw/2)}" y="${snap(tp.Yrow+offsetY+tp.fh/2)}"/></Array></mxGeometry></mxCell>`;
             }
           } else {
-            // destino es terminador automático, arista directa
             fullXml+=`\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${siId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
           }
-          fullXml+=`\n    <mxCell id="elbl_${edgeId++}" value="${esc(n.yes||'Sí')}" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];${baseFont}fontStyle=1;" vertex="1" connectable="0" parent="${eid}"><mxGeometry x="0" y="0" relative="1" as="geometry"><mxPoint as="offset" x="-12" y="-10"/></mxGeometry></mxCell>`;
+          // Etiqueta SÍ cerca del source (decisión)
+          fullXml+=`\n    <mxCell id="elbl_${edgeId++}" value="${esc(n.yes||'Sí')}" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];${baseFont}fontStyle=1;" vertex="1" connectable="0" parent="${eid}"><mxGeometry x="-0.8" y="0" relative="1" as="geometry"><mxPoint as="offset" x="-10" y="-12"/></mxGeometry></mxCell>`;
         }
 
         // ── Rama NO: sale por el borde derecho ───────────────────
@@ -1160,7 +1102,8 @@ function generateXML() {
           } else {
             fullXml+=`\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${noId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
           }
-          fullXml+=`\n    <mxCell id="elbl_${edgeId++}" value="${esc(n.no||'No')}" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];${baseFont}fontStyle=1;" vertex="1" connectable="0" parent="${eid}"><mxGeometry x="0" y="0" relative="1" as="geometry"><mxPoint as="offset" x="12" y="-10"/></mxGeometry></mxCell>`;
+          // Etiqueta NO cerca del source (decisión)
+          fullXml+=`\n    <mxCell id="elbl_${edgeId++}" value="${esc(n.no||'No')}" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];${baseFont}fontStyle=1;" vertex="1" connectable="0" parent="${eid}"><mxGeometry x="-0.8" y="0" relative="1" as="geometry"><mxPoint as="offset" x="10" y="-12"/></mxGeometry></mxCell>`;
         }
 
       } else if (n.type==='conector') {
@@ -1203,7 +1146,6 @@ function generateXML() {
         const prevIsDec = i>0&&nodes[i-1]&&nodes[i-1].type==='decision';
         if (prevIsDec&&decisionTargets.has(nx)) return;
         const pn=positions[nx]; if(!pn) return;
-        const sameRow=(p.row===pn.row);
         fullXml+=`\n    <mxCell id="edge_${edgeId++}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${nodeIds[nx]}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
       }
     }); // fin pageNodes.forEach aristas
