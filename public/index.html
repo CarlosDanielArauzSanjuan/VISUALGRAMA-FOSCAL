@@ -124,8 +124,7 @@ oninput="saveSession()"></textarea>
     </div>
     <div class="ui-note">
       <div class="ui-note-line">Revisa y ajusta tipos, rutas y responsables. <b>Arrastra para reordenar.</b> Para el límite cuentan solo <b>Acción</b> y <b>Decisión</b>. Los conectores no cuentan.</div>
-      <div class="ui-note-line"><b>Paginación:</b> máximo 16 filas de contenido por página, con 2 filas reservadas para continuidad (Inicio/Fin automáticos) y hasta 14 nodos de flujo.</div>
-    </div>
+    <div class="ui-note-line"><b>Paginación:</b> máximo 12 actividades/decisiones por página. Filas de Inicio/Fin y salto de página tienen alto fijo de 40px. Máximo 8 responsables por página.</div>    </div>
     <div id="nodes-limit-warn" class="limit-warn hidden"></div>
     <div class="nodes-workspace" id="nodes-workspace">
       <div id="nodes-list"></div>
@@ -144,8 +143,7 @@ oninput="saveSession()"></textarea>
 
   <!-- TAB 4: XML -->
   <div id="tab-output" class="hidden">
-<div class="notice"><b>Listo.</b> Descarga o copia el XML generado. Para importarlo en Draw.io: abre <b>draw.io</b>, crea un diagrama nuevo, ve a <b>Extras → Editar Diagrama</b>, pega el contenido y haz clic en <b>Aceptar</b>. También puedes usar <b>Archivo → Importar desde → Dispositivo</b> si guardaste el archivo .xml.</div>
-    <div id="output-metrics"></div>
+  <div class="notice"><b>Listo.</b> Descarga el archivo XML e impórtalo en Draw.io: <b>Archivo → Importar desde → Dispositivo</b>.</div>    <div id="output-metrics"></div>
     <pre id="xml-output">— El XML aparecerá aquí —</pre>
     <button class="btn btn-primary" style="margin-top:10px;" onclick="copyXML()">Copiar XML</button>
     <div id="copy-msg" style="font-size:10pt;font-weight:800;margin-top:8px;display:none;text-align:center;"></div>

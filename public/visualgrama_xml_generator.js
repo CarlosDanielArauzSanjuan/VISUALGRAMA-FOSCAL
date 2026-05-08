@@ -1,9 +1,12 @@
 const SNAP = 10;
-const MAX_ACTORS = 8;          // tabla define hasta 8 responsables
-const MAX_ROWS_PER_PAGE = 16;  // filas totales por página (fila 1 y 16 son terminadores fijos)
-const MAX_FLOW_NODES_PER_PAGE = 14; // filas 2-15: actividades (action+decision)
-// Sin límite de páginas: calcPages() las genera según necesite
-const MAX_FLOW_NODES = MAX_FLOW_NODES_PER_PAGE * 4; // referencia orientativa (4 páginas base)
+const DIM_RH_MIN = 60;
+const DIM_RH_MAX = 100;
+const DIM_CW_MIN = 130;
+const DIM_CW_MAX = 200;
+const ROW_H_TERM = 40; // alto fijo inicio/fin y salto de página
+const MAX_ROWS_PER_PAGE    = 14; // 12 nodos + inicio + fin
+const MAX_FLOW_NODES_PER_PAGE = 12;
+const MAX_FLOW_NODES = MAX_FLOW_NODES_PER_PAGE * 4;
 
 let actors = [{ name: 'Responsable 1' }];
 let nodes  = [];
@@ -79,7 +82,7 @@ function updateCapacityUI() {
     w.style.display = atLimit ? 'block' : 'none';
     if (atLimit) w.innerHTML = `⚠ Límite: máximo ${MAX_FLOW_NODES} nodos de flujo (${flowCount}). Los conectores no cuentan.`;
   }
-  const atActorLimit = actors.length >= MAX_ACTORS;
+  const atActorLimit = actors.length >= 20;
   const ba = document.getElementById('btn-add-actor');
   const wa = document.getElementById('actors-limit-warn');
   if (ba) ba.disabled = atActorLimit;
@@ -142,7 +145,6 @@ function procesarTexto(autoAdvance = true) {
 
   const isInicio = l => /^inicio[:\s.]*$/i.test(l);
   const isFin    = l => /^fin[:\s.]*$/i.test(l);
-  const isIrAFin = l => /\bir\s+a\s+fin\b/i.test(l);
 
   function matchStep(line) {
     const m = line.match(/^(\d{1,3})\s*[.):\-]?\s+(.+)$/);
@@ -161,7 +163,7 @@ function procesarTexto(autoAdvance = true) {
   const isDecision = desc => desc.includes('?');
   function cleanDecisionLabel(desc) {
     let s = desc.replace(/^\s*¿\s*/,'').trim();
-    return s.endsWith('?') ? s : s + '?';
+    return s.replace(/\?\s*$/, '').trim();
   }
   function extractGotoTarget(s) {
     const mc = s.match(/^\[([A-Za-z0-9])\]/);
@@ -195,7 +197,7 @@ function procesarTexto(autoAdvance = true) {
   for (let li = 0; li < rawLines.length; li++) {
     const line = rawLines[li];
 
-   if (hasFin && !isFin(line)) {
+    if (hasFin && !isFin(line)) {
       addLog('warn',`L${li+1}: Línea ignorada — el texto no puede continuar después de FIN. <a href="#" onclick="(function(){const ta=document.getElementById('inputText');const lines=ta.value.split('\\n');lines.splice(${li},1);ta.value=lines.join('\\n');saveSession();document.getElementById('parse-log').innerHTML='';soloExtraer();})();return false;" style="color:#fbbf24;text-decoration:underline;">Eliminar línea</a>`);
       continue;
     }
@@ -205,7 +207,7 @@ function procesarTexto(autoAdvance = true) {
         continue;
       }
       hasInicio = true;
-      tempNodes.push({ type:'terminator', label:'Inicio', actor:'', siTarget:undefined, noTarget:undefined, target:undefined });
+      tempNodes.push({ type:'terminator', label:'INICIO', actor:'', siTarget:undefined, noTarget:undefined, target:undefined });
       addLog('ok',`L${li+1}: INICIO detectado.`); continue;
     }
     if (isFin(line)) {
@@ -214,7 +216,7 @@ function procesarTexto(autoAdvance = true) {
         continue;
       }
       hasFin = true;
-      tempNodes.push({ type:'terminator', label:'Fin', actor:'', siTarget:undefined, noTarget:undefined, target:undefined });
+      tempNodes.push({ type:'terminator', label:'FIN', actor:'', siTarget:undefined, noTarget:undefined, target:undefined });
       addLog('ok',`L${li+1}: FIN detectado.`); continue;
     }
 
@@ -276,8 +278,8 @@ function procesarTexto(autoAdvance = true) {
     warnings.push(`Línea ${li+1}: no reconocida.`);
   }
 
-  if (!hasInicio) { tempNodes.unshift({ type:'terminator', label:'Inicio', actor:'', siTarget:undefined, noTarget:undefined, target:undefined }); warnings.push('INICIO no encontrado, agregado automáticamente.'); }
-  if (!hasFin)    { tempNodes.push({ type:'terminator', label:'Fin', actor:'', siTarget:undefined, noTarget:undefined, target:undefined }); warnings.push('FIN no encontrado, agregado automáticamente.'); }
+  if (!hasInicio) { tempNodes.unshift({ type:'terminator', label:'INICIO', actor:'', siTarget:undefined, noTarget:undefined, target:undefined }); warnings.push('INICIO no encontrado, agregado automáticamente.'); }
+  if (!hasFin)    { tempNodes.push({ type:'terminator', label:'FIN', actor:'', siTarget:undefined, noTarget:undefined, target:undefined }); warnings.push('FIN no encontrado, agregado automáticamente.'); }
 
   const flowNodes = tempNodes.filter(n => n.type==='action' || n.type==='decision');
   if (flowNodes.length === 0) { showError('No se detectaron pasos. Formato: <b>N. (Actor), Descripción</b>'); renderLog(logs); return; }
@@ -293,12 +295,12 @@ function procesarTexto(autoAdvance = true) {
   saveSession();
   renderLog(logs);
   renderSummary(flowNodes.length, tempNodes.filter(n=>n.type==='conector').length, actors.length, warnings, tempNodes.filter(n=>n.type==='decision').length);
-if (!logs.some(l=>l.level==='err')) {
-  const btnC = document.getElementById('btn-continuar-tab2');
-  if (btnC) { btnC.disabled = false; btnC.style.opacity = '1'; }
-  renderResponsablesBadges();
-  if (autoAdvance) showTab('nodes');
-}
+  if (!logs.some(l=>l.level==='err')) {
+    const btnC = document.getElementById('btn-continuar-tab2');
+    if (btnC) { btnC.disabled = false; btnC.style.opacity = '1'; }
+    renderResponsablesBadges();
+    if (autoAdvance) showTab('nodes');
+  }
 }
 function soloExtraer() {
   procesarTexto(false);
@@ -325,37 +327,39 @@ function renderSummary(flowNodes, connectors, actorsCount, warnings, decisions) 
   box.style.display = 'block';
 }
 
-// ── MÉTRICAS (tabla estandarizada: Alto×Ancho celda, múltiplos de 10) ─────────
-// Filas: #nodos de flujo por página (6-16+), Columnas: #responsables (2-8)
-// Formato: [RH, CW]  — Alto fila × Ancho carril
+// ── MÉTRICAS ──────────────────────────────────────────────────────
+// [RH, CW] — Alto fila × Ancho carril — máx RH=100, máx CW=200
 const DIM_TABLE = {
-  //     2          3          4          5          6        7        8         9          100,110  responsables
-   6: [[100,400],[100,360],[100,270],[100,220],[100,180],[100,150],[100,130],[100,120]], // 
-   7: [[100,400],[100,360],[100,270],[100,220],[110,180],[100,150],[100,130],[100,120]],
-   8: [[100,400],[100,360],[100,270],[100,220],[100,180],[100,150],[100,130],[100,120]],
-   9: [[ 90,400],[ 90,360],[ 90,270],[ 90,220],[ 90,180],[ 90,150],[ 90,130],[ 90,120]],
-  10: [[ 80,400],[ 80,360],[ 80,270],[ 80,220],[ 80,180],[ 80,150],[ 80,130],[ 80,120]],
-  11: [[ 70,400],[ 70,360],[ 70,270],[ 70,220],[ 70,180],[ 70,150],[ 70,130],[ 70,120]],
-  12: [[ 60,400],[ 60,360],[ 60,270],[ 60,220],[ 60,180],[ 60,150],[ 60,130],[ 60,120]],
-  13: [[ 60,400],[ 60,360],[ 60,270],[ 60,220],[ 60,180],[ 60,150],[ 60,130],[ 60,120]],
-  14: [[ 50,400],[ 50,360],[ 50,270],[ 50,220],[ 50,180],[ 50,150],[ 50,130],[ 50,120]],
-  15: [[ 50,400],[ 50,360],[ 50,270],[ 50,220],[ 50,180],[ 50,150],[ 50,130],[ 50,120]],
-  16: [[ 50,400],[ 50,360],[ 50,270],[ 50,220],[ 50,180],[ 50,150],[ 50,130],[ 50,120]],
+  //     2          3          4          5          6          7          8     actores
+   1: [[100,200],[100,200],[100,200],[100,200],[100,180],[100,150],[100,130]],
+   2: [[100,200],[100,200],[100,200],[100,200],[100,180],[100,150],[100,130]],
+   3: [[100,200],[100,200],[100,200],[100,200],[100,180],[100,150],[100,130]],
+   4: [[100,200],[100,200],[100,200],[100,200],[100,180],[100,150],[100,130]],
+   5: [[100,200],[100,200],[100,200],[100,200],[100,180],[100,150],[100,130]],
+   6: [[100,200],[100,200],[100,200],[100,200],[100,180],[100,150],[100,130]], // 
+   7: [[100,200],[100,200],[100,200],[100,200],[110,180],[100,150],[100,130]],
+   8: [[100,200],[100,200],[100,200],[100,200],[100,180],[100,150],[100,130]],
+   9: [[ 90,200],[ 90,200],[ 90,200],[ 90,200],[ 90,180],[ 90,150],[ 90,130]],
+  10: [[ 80,200],[ 80,200],[ 80,200],[ 80,200],[ 80,180],[ 80,150],[ 80,130]],
+  11: [[ 70,200],[ 70,200],[ 70,200],[ 70,200],[ 70,180],[ 70,150],[ 70,130]],
+  12: [[ 60,200],[ 60,200],[ 60,200],[ 60,200],[ 60,180],[ 60,150],[ 60,130]],
 };
-const HEADER_H  = 40;
-const CONN_SIZE = 20;
 
-// Tamaños mínimos por tipo de figura
+const HEADER_H  = 50;
+const CONN_SIZE = 30;
+const MARGIN_X  = 5;
+const MARGIN_Y  = 10;
+
 const FIG_MIN = {
-  action:     { w: 80, h: 40 },
-  decision:   { w:100, h: 40 },
-  terminator: { w: 60, h: 40 },
-  conector:   { w: 20, h: 20 },
+  action:     { w: 100, h: 40 },
+  decision:   { w: 110, h: 50 },
+  terminator: { w:  70, h: 20 },
+  conector:   { w:  20, h: 20 },
 };
 
 function lookupDim(flowNodesForPage, actorCount) {
-  const row = Math.min(Math.max(flowNodesForPage, 6), 16);
-  const col = Math.min(Math.max(actorCount, 2), 8) - 2; // índice 0-6
+  const row = Math.min(Math.max(flowNodesForPage, 1), 12);
+  const col = Math.min(Math.max(actorCount, 2), 8) - 2;
   return DIM_TABLE[row][col];
 }
 
@@ -384,24 +388,22 @@ function calcPages(totalFlowNodes) {
 }
 
 function figSize(type, RH, NW) {
-  const CONN_S = CONN_SIZE;
-  if (type === 'conector')   return { w: CONN_S, h: CONN_S };
-  if (type === 'terminator') return { w: 60, h: 40 };
-  const minH = (RH === 50) ? 30 : FIG_MIN[type].h;
+  if (type === 'conector')   return { w: CONN_SIZE, h: CONN_SIZE };
+  if (type === 'terminator') return { w: 70, h: 20 };
+  const minH = FIG_MIN[type].h;
   const minW = FIG_MIN[type].w;
-  const MAX_FIG_W = 200;
-  return { w: Math.min(Math.max(NW, minW), MAX_FIG_W), h: Math.max(minH, Math.min(minH, RH - 20)) };
+  const w = Math.min(Math.max(snap(NW), minW), 200);
+  const h = Math.min(Math.max(snap(RH - MARGIN_Y * 2), minH), RH);
+  return { w, h };
 }
 
 function getMetrics(flowNodesForPage, actorCount) {
-  const aCnt = Math.min(Math.max(actorCount, 2), 8);
+  const aCnt    = Math.min(Math.max(actorCount, 2), 8);
   const aCntRaw = Math.max(actorCount, 1);
   const [RH, CW_base] = lookupDim(flowNodesForPage, aCnt);
-  const CW = (actorCount === 1) ? CW_base * 2 : CW_base;
-  const marginX = Math.min(20, Math.max(10, snap(Math.round((CW - FIG_MIN.action.w) / 2 / SNAP) * SNAP)));
-  const marginY = Math.min(20, Math.max(10, snap(Math.round((RH - FIG_MIN.action.h) / 2 / SNAP) * SNAP)));
-  const NW = snap(CW - marginX * 2);
-  const NH = snap(RH - marginY * 2);
+  const CW   = (actorCount === 1) ? CW_base * 2 : CW_base;
+  const NW   = snap(CW - MARGIN_X * 2);
+  const NH   = snap(RH - MARGIN_Y * 2);
   const totalW = snap(aCntRaw * CW);
   return { RH, CW, NW, NH, headerH: HEADER_H, actorCount: aCntRaw, totalW };
 }
@@ -433,7 +435,7 @@ function renderActors() {
   updateCapacityUI();
 }
 function addActor() {
-  if (actors.length >= MAX_ACTORS) { showToast(`⚠ Límite: máximo ${MAX_ACTORS} responsables.`); return; }
+  if (actors.length >= 20) { showToast('⚠ Límite: máximo 20 responsables.'); return; }
   actors.push({ name:`Responsable ${actors.length+1}` }); renderActors(); saveSession();
 }
 function removeActor(i) {
@@ -463,7 +465,7 @@ function clearNodes() {
   showConfirm('¿Eliminar todos los nodos?', () => { nodes=[]; saveSession(); renderNodes(); updateCapacityUI(); });
 }
 
-// ── DRAG & DROP (legacy - reemplazado por kanban) ─────────────────
+// ── DRAG & DROP (legacy) ──────────────────────────────────────────
 let dragSrcIdx = null;
 function onDragStart(e,idx) {}
 function onDragEnd(e) {}
@@ -551,7 +553,7 @@ function renderNodes() {
         const isDragOver = kanbanDragOverIdx === i;
         const svgIcon = {
           action:     `<svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="1" width="20" height="12" rx="0" stroke="#0000FF" stroke-width="2" fill="none"/></svg>`,
-          decision:   `<svg width="22" height="16" viewBox="0 0 22 16"><polygon points="11,1 21,8 11,15 1,8" stroke="#f19a43" stroke-width="2" fill="none"/></svg>`,
+          decision:   `<svg width="22" height="16" viewBox="0 0 22 16"><polygon points="11,1 21,8 11,15 1,8" stroke="#ff7d04" stroke-width="2" fill="none"/></svg>`,
           terminator: `<svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="1" width="20" height="12" rx="6" stroke="#00B400" stroke-width="2" fill="none"/></svg>`,
           conector:   `<svg width="16" height="16" viewBox="0 0 16 16"><ellipse cx="8" cy="8" rx="7" ry="7" stroke="#555" stroke-width="2" fill="none"/></svg>`,
         }[n.type] || '';
@@ -655,10 +657,9 @@ function kanbanDropToCell(e, targetIdx, targetCol) {
 // ── EDITOR DE NODO (OVERLAY) ──────────────────────────────────────
 function openNodeEditor(i) {
   const n = nodes[i];
-  let stepNum = 0;
   let sc = 0;
   for (let k=0; k<=i; k++) { if (isFlowType(nodes[k].type)) sc++; }
-  stepNum = isFlowType(n.type) ? sc : null;
+  const stepNum = isFlowType(n.type) ? sc : null;
 
   const title = n.type==='terminator' ? 'Inicio / Fin'
               : n.type==='conector'   ? `Conector [${n.label||''}]`
@@ -744,12 +745,12 @@ function closeNodeEditor() {
 }
 
 function nedSave(i) {
-  const newType = document.getElementById('ned-type').value;
-  const labelEl = document.getElementById('ned-label');
-  const actorEl = document.getElementById('ned-actor');
-  const siEl    = document.getElementById('ned-si');
-  const noEl    = document.getElementById('ned-no');
-  const targetEl= document.getElementById('ned-target');
+  const newType  = document.getElementById('ned-type').value;
+  const labelEl  = document.getElementById('ned-label');
+  const actorEl  = document.getElementById('ned-actor');
+  const siEl     = document.getElementById('ned-si');
+  const noEl     = document.getElementById('ned-no');
+  const targetEl = document.getElementById('ned-target');
 
   const curIsFlow = isFlowType(nodes[i].type);
   const newIsFlow = isFlowType(newType);
@@ -760,7 +761,7 @@ function nedSave(i) {
 
   if (newType === 'conector') {
     nodes[i].siTarget = undefined; nodes[i].noTarget = undefined;
-    if (labelEl) nodes[i].label = labelEl.value.trim() || 'A';
+    if (labelEl)  nodes[i].label  = labelEl.value.trim() || 'A';
     if (targetEl) nodes[i].target = parseTargetInput(targetEl.value);
     nodes[i].actor = actors[0]?.name || '';
   } else {
@@ -789,16 +790,17 @@ function nedDelete(i) {
 }
 
 function removeNode(i) { nodes.splice(i,1); saveSession(); renderNodes(); updateCapacityUI(); }
+
 function getVisibleInsertIndex() {
   if (!nodes.length) return 0;
   const panel = document.getElementById('tab-nodes');
-  const list = document.getElementById('nodes-list');
+  const list  = document.getElementById('nodes-list');
   const rowNums = Array.from(document.querySelectorAll('#nodes-list .kanban-row-num'));
   if (!panel || !list || rowNums.length === 0) return nodes.length;
 
-  const panelRect = panel.getBoundingClientRect();
-  const listRect = list.getBoundingClientRect();
-  const topLimit = Math.max(0, panelRect.top, listRect.top);
+  const panelRect  = panel.getBoundingClientRect();
+  const listRect   = list.getBoundingClientRect();
+  const topLimit   = Math.max(0, panelRect.top, listRect.top);
   const bottomLimit = Math.min(window.innerHeight, panelRect.bottom, listRect.bottom);
   if (bottomLimit <= topLimit) return nodes.length;
 
@@ -808,13 +810,16 @@ function getVisibleInsertIndex() {
   }
   return nodes.length;
 }
+
 function addNode(type) {
   if (actors.length===0) { showToast('⚠ Agrega al menos un responsable primero.'); return; }
-  if (isFlowType(type)&&countFlowNodes()>=MAX_FLOW_NODES) { showToast(`⚠ Límite: máximo ${MAX_FLOW_NODES} nodos de flujo.`); updateCapacityUI(); return; }
+  if (isFlowType(type) && countFlowNodes() >= MAX_FLOW_NODES) { showToast(`⚠ Límite: máximo ${MAX_FLOW_NODES} nodos de flujo.`); updateCapacityUI(); return; }
   const insertIdx = getVisibleInsertIndex();
   nodes.splice(insertIdx, 0, {
-    type, actor:actors[0].name,
-    label: type==='terminator'?(nodes.filter(n=>n.type==='terminator').length===0?'Inicio':'Fin'):type==='conector'?'A':'Nueva actividad',
+    type, actor: actors[0].name,
+    label: type==='terminator' ? (nodes.filter(n=>n.type==='terminator').length===0 ? 'INICIO' : 'FIN')
+         : type==='conector'   ? 'A'
+         : 'Nueva actividad',
     yes:'Sí', no:'No', siTarget:undefined, noTarget:undefined, target:undefined
   });
   saveSession(); renderNodes(); updateCapacityUI();
@@ -822,226 +827,240 @@ function addNode(type) {
 
 // ── GENERAR XML ───────────────────────────────────────────────────
 function generateXML() {
-  if (countFlowNodes()===0)  { showAlert('Agrega al menos un nodo de flujo (Acción o Decisión).'); return; }
-  if (actors.length===0) { showAlert('Agrega al menos un responsable.'); return; }
+  if (countFlowNodes()===0) { showAlert('Agrega al menos un nodo de flujo (Acción o Decisión).'); return; }
+  if (actors.length===0)    { showAlert('Agrega al menos un responsable.'); return; }
 
   const processName = document.getElementById('processName').value.trim() || 'Proceso';
 
-  // Garantizar que todos los nodos tienen actor válido
-  for (let i=0;i<nodes.length;i++) {
-    if (!actors.some(a=>a.name===nodes[i].actor)) nodes[i].actor=actors[0].name;
+  // Advertencia responsables
+  if (actors.length > 8) {
+    showToast(`⚠ Advertencia: ${actors.length} responsables. Se recomiendan máximo 8 por página.`);
   }
 
-  // ── Mapa stepNum → índice nodo ────────────────────────────────────
-  const stepNumToNodeIdx={}; let seqCounter=0;
-  nodes.forEach((n,i)=>{
-    if (n.type==='action'||n.type==='decision') {
+  // Garantizar actor válido en todos los nodos
+  for (let i=0; i<nodes.length; i++) {
+    if (!actors.some(a=>a.name===nodes[i].actor)) nodes[i].actor = actors[0].name;
+  }
+
+  // Mapa stepNum → índice nodo
+  const stepNumToNodeIdx = {}; let seqCounter = 0;
+  nodes.forEach((n,i) => {
+    if (n.type==='action' || n.type==='decision') {
       seqCounter++;
-      if (n.stepNum!=null) stepNumToNodeIdx[n.stepNum]=i;
-      if (stepNumToNodeIdx[seqCounter]===undefined) stepNumToNodeIdx[seqCounter]=i;
+      if (n.stepNum != null) stepNumToNodeIdx[n.stepNum] = i;
+      if (stepNumToNodeIdx[seqCounter] === undefined) stepNumToNodeIdx[seqCounter] = i;
     }
   });
 
-  // ── Separar nodos de flujo de conectores ──────────────────────────
-  const flowNodeCount = nodes.filter(({type})=>isFlowType(type)).length;
+  const flowNodeCount    = nodes.filter(({type}) => isFlowType(type)).length;
   const pageDistribution = calcPages(flowNodeCount);
-  const pageCount = pageDistribution.length;
+  const pageCount        = pageDistribution.length;
 
-  // ── resolveTarget ─────────────────────────────────────────────────
   const resolveTarget = val => {
     if (val===undefined||val===null||val==='') return null;
     if (val==='FIN')    return 'term_bot_'+(pageCount-1);
     if (val==='INICIO') return 'term_top_0';
-    if (typeof val==='object'&&val.stepRef!==undefined) { const idx=stepNumToNodeIdx[val.stepRef]; return idx!==undefined?idx:null; }
-    if (typeof val==='string') { const idx=nodes.findIndex(nx=>nx.type==='conector'&&nx.label===val); return idx!==-1?idx:null; }
+    if (typeof val==='object' && val.stepRef!==undefined) {
+      const idx = stepNumToNodeIdx[val.stepRef];
+      return idx !== undefined ? idx : null;
+    }
+    if (typeof val==='string') {
+      const idx = nodes.findIndex(nx => nx.type==='conector' && nx.label===val);
+      return idx !== -1 ? idx : null;
+    }
     return null;
   };
 
-  // ── Asignar páginas solo a actividades (action+decision) ──────────
+  // Asignar páginas a actividades
   const nodePageMap = new Array(nodes.length).fill(0);
   let adIdx=0, pageAccum=0, currentPage=0;
-  for (let i=0;i<nodes.length;i++) {
-    const n=nodes[i];
-    if (n.type==='action'||n.type==='decision') {
-      if (currentPage<pageCount-1 && adIdx >= pageAccum+pageDistribution[currentPage]) {
-        pageAccum+=pageDistribution[currentPage];
+  for (let i=0; i<nodes.length; i++) {
+    const n = nodes[i];
+    if (n.type==='action' || n.type==='decision') {
+      if (currentPage < pageCount-1 && adIdx >= pageAccum + pageDistribution[currentPage]) {
+        pageAccum += pageDistribution[currentPage];
         currentPage++;
       }
-      nodePageMap[i]=currentPage;
+      nodePageMap[i] = currentPage;
       adIdx++;
     }
   }
-  for (let i=0;i<nodes.length;i++) {
-    if (nodes[i].type==='terminator') nodePageMap[i]=-1;
+  for (let i=0; i<nodes.length; i++) {
+    if (nodes[i].type==='terminator') nodePageMap[i] = -1;
   }
-  for (let i=0;i<nodes.length;i++) {
+  for (let i=0; i<nodes.length; i++) {
     if (nodes[i].type!=='conector') continue;
-    let host=-1;
-    for (let k=i-1;k>=0;k--) { if(nodes[k].type!=='conector'&&nodePageMap[k]!==-1){host=k;break;} }
-    if (host===-1) for (let k=i+1;k<nodes.length;k++) { if(nodes[k].type!=='conector'&&nodePageMap[k]!==-1){host=k;break;} }
-    nodePageMap[i] = host>=0 ? nodePageMap[host] : 0;
+    let host = -1;
+    for (let k=i-1; k>=0; k--) { if (nodes[k].type!=='conector' && nodePageMap[k]!==-1) { host=k; break; } }
+    if (host===-1) for (let k=i+1; k<nodes.length; k++) { if (nodes[k].type!=='conector' && nodePageMap[k]!==-1) { host=k; break; } }
+    nodePageMap[i] = host >= 0 ? nodePageMap[host] : 0;
   }
 
-  // ── Generar XML por página ────────────────────────────────────────
   const baseFont = 'fontFamily=Arial Narrow;fontSize=10;fontColor=#333333;';
   const baseEdge = `edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;strokeWidth=1;sourcePerimeterSpacing=2;targetPerimeterSpacing=2;${baseFont}`;
-  const nodeIds  = nodes.map((_,i)=>`node_${i+1}`);
+  const nodeIds  = nodes.map((_,i) => `node_${i+1}`);
 
   let fullXml = `<mxfile host="app.diagrams.net" modified="" agent="" version="21.0.0" type="device">`;
 
   for (let pg=0; pg<pageCount; pg++) {
-    const pageNodes = nodes.map((n,i)=>({n,i})).filter(({i})=>nodePageMap[i]===pg);
-    const pageFlowCount = pageNodes.filter(({n})=>isFlowType(n.type)).length;
+    const pageNodes    = nodes.map((n,i) => ({n,i})).filter(({i}) => nodePageMap[i]===pg);
+    const pageFlowCount = pageNodes.filter(({n}) => isFlowType(n.type)).length;
 
-    // ── Actores activos en esta página (solo action+decision) ─────────
     const pageActorNames = new Set(
-      pageNodes.filter(({n})=>isFlowType(n.type)).map(({n})=>n.actor)
+      pageNodes.filter(({n}) => isFlowType(n.type)).map(({n}) => n.actor)
     );
-    const pageActors = actors.filter(a=>pageActorNames.has(a.name));
+    const pageActors     = actors.filter(a => pageActorNames.has(a.name));
     const pageActorCount = Math.max(pageActors.length, 1);
     const actorIndexLocal = {};
-    pageActors.forEach((a,li)=>{ actorIndexLocal[a.name]=li; });
+    pageActors.forEach((a,li) => { actorIndexLocal[a.name] = li; });
 
-    const totalFilasPagina = Math.min(16, Math.max(6, pageFlowCount + 2));
+    const totalFilasPagina = Math.min(12, Math.max(1, pageFlowCount));
     const m = getMetrics(totalFilasPagina, pageActorCount);
 
+    // Posiciones
     const positions = new Array(nodes.length).fill(null);
-    let currentRow = 1;
-    const nonConnPageNodes = pageNodes.filter(({n})=>n.type!=='conector');
+    let rowCounter = 0;
+    const nonConnPageNodes = pageNodes.filter(({n}) => n.type!=='conector');
     for (let pi=0; pi<nonConnPageNodes.length; pi++) {
       const {n, i} = nonConnPageNodes[pi];
-      const ai = actorIndexLocal[n.actor] ?? 0;
-      if (pi > 0) currentRow++;
+      const ai    = actorIndexLocal[n.actor] ?? 0;
       const Xcol  = snap(ai * m.CW);
-      const Yrow  = snap(HEADER_H + currentRow * m.RH);
+      const Yrow  = snap(HEADER_H + ROW_H_TERM + rowCounter * m.RH);
       const fs    = figSize(n.type, m.RH, m.NW);
-      const mxPx  = Math.min(20, Math.max(10, snap(Math.round((m.CW - fs.w) / 2 / SNAP) * SNAP)));
-      const myPx  = Math.min(20, Math.max(10, snap(Math.round((m.RH - fs.h) / 2 / SNAP) * SNAP)));
+      const mxPx  = MARGIN_X;
+      const myPx  = snap((m.RH - fs.h) / 2);
       const Xnode = snap(Xcol + mxPx);
       const Ynode = snap(Yrow + myPx);
-      positions[i] = { row:currentRow, Xcol, Yrow, Xnode, Ynode, actorIdx:ai, fw:fs.w, fh:fs.h, isConnector:false };
+      positions[i] = { row:rowCounter, Xcol, Yrow, Xnode, Ynode, actorIdx:ai, fw:fs.w, fh:fs.h, isConnector:false };
+      rowCounter++;
     }
 
+    // Conectores: posición junto a su nodo host
     const slotConnCount = {};
-    for (let i=0;i<nodes.length;i++) {
+    for (let i=0; i<nodes.length; i++) {
       if (nodes[i].type!=='conector') continue;
       if (nodePageMap[i]!==pg) continue;
-      let hostIdx=-1;
-      for (let k=i-1;k>=0;k--) { if(nodes[k].type!=='conector'&&nodePageMap[k]===pg){hostIdx=k;break;} }
-      if (hostIdx===-1) for (let k=i+1;k<nodes.length;k++) { if(nodes[k].type!=='conector'&&nodePageMap[k]===pg){hostIdx=k;break;} }
-      const hp = hostIdx>=0&&positions[hostIdx]
+      let hostIdx = -1;
+      for (let k=i-1; k>=0; k--) { if (nodes[k].type!=='conector' && nodePageMap[k]===pg) { hostIdx=k; break; } }
+      if (hostIdx===-1) for (let k=i+1; k<nodes.length; k++) { if (nodes[k].type!=='conector' && nodePageMap[k]===pg) { hostIdx=k; break; } }
+      const hp = hostIdx>=0 && positions[hostIdx]
         ? positions[hostIdx]
-        : { row:0, Xcol:0, Yrow:HEADER_H, actorIdx:0 };
-      const sk = `${hp.row}:${hp.actorIdx}`;
-      const sib = slotConnCount[sk]||0;
-      slotConnCount[sk] = sib+1;
-      const cx = snap(hp.Xcol + m.CW - CONN_SIZE);
+        : { row:0, Xcol:0, Yrow:HEADER_H + ROW_H_TERM, actorIdx:0 };
+      const sk  = `${hp.row}:${hp.actorIdx}`;
+      const sib = slotConnCount[sk] || 0;
+      slotConnCount[sk] = sib + 1;
+      const cx = snap(hp.Xcol + m.CW - CONN_SIZE - sib * (CONN_SIZE + 4));
       const cy = snap(hp.Yrow);
       positions[i] = { row:hp.row, Xcol:hp.Xcol, Yrow:hp.Yrow, Xnode:cx, Ynode:cy, actorIdx:hp.actorIdx, fw:CONN_SIZE, fh:CONN_SIZE, isConnector:true };
     }
 
+    // Par de entrada para conectores con target
     const pairMap = {}, slotPairCount = {};
     let pairIdCounter = 800 + pg*100;
-    nodes.forEach((n,i)=>{
-      if (n.type!=='conector'||nodePageMap[i]!==pg) return;
-      const tgtIdx=resolveTarget(n.target); if (tgtIdx===null||typeof tgtIdx==='string'||tgtIdx>=nodes.length) return;
-      const tp=positions[tgtIdx]; if (!tp) return;
-      const pk=`pair:${tp.row}:${tp.actorIdx}`;
-      const ps=slotPairCount[pk]||0;
-      slotPairCount[pk]=ps+1;
-      const px = snap(tp.Xcol + m.CW - CONN_SIZE);
+    nodes.forEach((n,i) => {
+      if (n.type!=='conector' || nodePageMap[i]!==pg) return;
+      const tgtIdx = resolveTarget(n.target);
+      if (tgtIdx===null || typeof tgtIdx==='string' || tgtIdx>=nodes.length) return;
+      const tp = positions[tgtIdx]; if (!tp) return;
+      const pk = `pair:${tp.row}:${tp.actorIdx}`;
+      const ps = slotPairCount[pk] || 0;
+      slotPairCount[pk] = ps + 1;
+      const px = snap(tp.Xcol + m.CW - CONN_SIZE - ps * (CONN_SIZE + 4));
       const py = snap(tp.Yrow);
       pairMap[i] = { pairId:`conn_pair_${pairIdCounter++}`, absX:px, absY:py, label:n.label||'?' };
     });
 
     const poolW = snap(pageActorCount * m.CW);
-    const poolH = snap(HEADER_H + totalFilasPagina * m.RH);
-    const offsetY = 0;
+    const poolH = snap(HEADER_H + ROW_H_TERM * 2 + pageFlowCount * m.RH);
 
     const pageName = pageCount > 1 ? `Página ${pg+1}` : 'Página 1';
     fullXml += `\n  <diagram name="${esc(pageName)}" id="page_${pg}">\n    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">\n      <root>\n        <mxCell id="0"/>\n        <mxCell id="1" parent="0"/>`;
 
-    // Terminadores automáticos
-    const termStyle    = `shape=mxgraph.flowchart.terminator;fillColor=none;strokeColor=#00B400;strokeWidth=2;${baseFont}fontSize=10;html=1;whiteSpace=wrap;align=center;`;
-    const offPageStyle = `shape=offPageConnector;fillColor=none;strokeColor=#000000;strokeWidth=2;${baseFont}fontSize=10;html=1;whiteSpace=wrap;align=center;`;
-    const offPageFs    = { w: 30, h: 30 };
-    const termFs     = figSize('terminator', m.RH, m.NW);
-    const termRow0Y  = snap(HEADER_H + 0 * m.RH);
-    const termRowBotY= snap(HEADER_H + (pageFlowCount + 1) * m.RH);
-    const labelTop = pg === 0 ? 'INICIO' : `${pg}`;
-    const labelBot = pg === pageCount-1 ? 'FIN' : `${pg+2}`;
-    const styleTop   = pg === 0            ? termStyle : offPageStyle;
-    const styleBot   = pg === pageCount-1  ? termStyle : offPageStyle;
+    // Estilos terminadores
+    const termStyle     = `rounded=1;arcSize=38;fillColor=none;strokeColor=#00B400;strokeWidth=2;${baseFont}fontSize=10;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontStyle=1;`;
+    const offPageStyle  = `shape=offPageConnector;fillColor=none;strokeColor=#000000;strokeWidth=2;${baseFont}fontSize=10;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontStyle=1;`;
+    const offPageFs     = { w: 30, h: 30 };
+    const termFs        = figSize('terminator', m.RH, m.NW);
 
-    const fsTop  = pg === 0           ? termFs : offPageFs;
-    const fsBot  = pg === pageCount-1 ? termFs : offPageFs;
-    const mxTop  = snap(Math.floor((m.CW - fsTop.w) / 2 / SNAP) * SNAP);
-    const myTop  = snap(Math.floor((m.RH - fsTop.h) / 2 / SNAP) * SNAP);
-    const mxBot  = snap(Math.floor((m.CW - fsBot.w) / 2 / SNAP) * SNAP);
-    const myBot  = snap(Math.floor((m.RH - fsBot.h) / 2 / SNAP) * SNAP);
+    const termRow0Y    = snap(HEADER_H);
+    const termRowBotY  = snap(HEADER_H + ROW_H_TERM + pageFlowCount * m.RH);
+
+    const labelTop = pg === 0             ? 'INICIO' : `${pg}`;
+    const labelBot = pg === pageCount-1   ? 'FIN'    : `${pg+2}`;
+    const styleTop = pg === 0             ? termStyle : offPageStyle;
+    const styleBot = pg === pageCount-1   ? termStyle : offPageStyle;
+    const fsTop    = pg === 0             ? termFs    : offPageFs;
+    const fsBot    = pg === pageCount-1   ? termFs    : offPageFs;
+
+    const mxTop = snap((m.CW - fsTop.w) / 2);
+    const myTop = snap((ROW_H_TERM - fsTop.h) / 2);
+    const mxBot = snap((m.CW - fsBot.w) / 2);
+    const myBot = snap((ROW_H_TERM - fsBot.h) / 2);
 
     fullXml += `\n        <mxCell id="term_top_${pg}" value="${esc(labelTop)}" style="${styleTop}" vertex="1" parent="1">\n          <mxGeometry x="${mxTop}" y="${snap(termRow0Y+myTop)}" width="${fsTop.w}" height="${fsTop.h}" as="geometry"/>\n        </mxCell>`;
     fullXml += `\n        <mxCell id="term_bot_${pg}" value="${esc(labelBot)}" style="${styleBot}" vertex="1" parent="1">\n          <mxGeometry x="${mxBot}" y="${snap(termRowBotY+myBot)}" width="${fsBot.w}" height="${fsBot.h}" as="geometry"/>\n        </mxCell>`;
 
-    const firstAct = pageNodes.find(({n,i})=>isFlowType(n.type)&&positions[i]!==null);
+    const firstAct = pageNodes.find(({n,i}) => isFlowType(n.type) && positions[i]!==null);
     if (firstAct) fullXml += `\n        <mxCell id="edge_term_top_${pg}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="term_top_${pg}" target="${nodeIds[firstAct.i]}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
-    const lastAct = [...pageNodes].reverse().find(({n,i})=>isFlowType(n.type)&&positions[i]!==null);
-    if (lastAct) fullXml += `\n        <mxCell id="edge_term_bot_${pg}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${nodeIds[lastAct.i]}" target="term_bot_${pg}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
+    const lastAct  = [...pageNodes].reverse().find(({n,i}) => isFlowType(n.type) && positions[i]!==null);
+    if (lastAct)  fullXml += `\n        <mxCell id="edge_term_bot_${pg}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${nodeIds[lastAct.i]}" target="term_bot_${pg}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
 
     // Borde exterior
     fullXml += `\n        <mxCell id="border_${pg}" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;pointerEvents=0;" vertex="1" parent="1">\n          <mxGeometry x="0" y="0" width="${poolW}" height="${poolH}" as="geometry"/>\n        </mxCell>`;
 
-    // Headers de actores (solo los de esta página)
-    pageActors.forEach((a,li)=>{
+    // Headers actores
+    pageActors.forEach((a,li) => {
       fullXml += `\n        <mxCell id="hdr_${pg}_${li}" value="${esc(a.name.toUpperCase())}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontStyle=1;fontSize=11;fontFamily=Arial Narrow;fontColor=#333333;" vertex="1" parent="1">\n          <mxGeometry x="${snap(li*m.CW)}" y="0" width="${m.CW}" height="${HEADER_H}" as="geometry"/>\n        </mxCell>`;
     });
 
     // Línea separadora header
     fullXml += `\n        <mxCell id="hline_${pg}" value="" style="shape=line;strokeColor=#000000;strokeWidth=1;fillColor=none;horizontal=1;" vertex="1" parent="1">\n          <mxGeometry x="0" y="${HEADER_H}" width="${poolW}" height="2" as="geometry"/>\n        </mxCell>`;
 
-    // Líneas verticales entre carriles (solo actores de esta página)
-    for (let li=1;li<pageActorCount;li++) {
+    // Líneas verticales entre carriles
+    for (let li=1; li<pageActorCount; li++) {
       fullXml += `\n        <mxCell id="vline_${pg}_${li}" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;pointerEvents=0;" vertex="1" parent="1">\n          <mxGeometry x="${snap(li*m.CW)}" y="0" width="1" height="${poolH}" as="geometry"/>\n        </mxCell>`;
     }
 
     let edgeId      = 500 + pg*1000;
     let markerIdCtr = 900 + pg*1000;
 
-    pageNodes.forEach(({n,i})=>{
-      const p=positions[i]; if(!p) return;
-      const nid=nodeIds[i];
-      const fs2=p.fw, fh2=p.fh;
-      const drawX=snap(p.Xnode);
-      const drawY=snap(p.Ynode + offsetY);
-      const textSz=(n.type!=='conector'&&n.label.length>60)?8:10;
-      let style='';
+    // Figuras
+    pageNodes.forEach(({n,i}) => {
+      const p = positions[i]; if (!p) return;
+      const nid   = nodeIds[i];
+      const fs2   = p.fw;
+      const fh2   = p.fh;
+      const drawX = snap(p.Xnode);
+      const drawY = snap(p.Ynode);
+      const textSz = (n.type!=='conector' && n.label.length > 80) ? 8 : 10;
+      let style = '';
 
       if (n.type==='terminator') {
-        style=`shape=mxgraph.flowchart.label;fillColor=none;strokeColor=#00B400;strokeWidth=2;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;`;
+        style = `rounded=1;arcSize=38;fillColor=none;strokeColor=#00B400;strokeWidth=2;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontStyle=1;`;
       } else if (n.type==='decision') {
-        style=`shape=rhombus;perimeter=rhombusPerimeter;fillColor=none;strokeColor=#f19a43;strokeWidth=2;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;`;
+        style = `shape=rhombus;perimeter=rhombusPerimeter;fillColor=none;strokeColor=#FF8000;strokeWidth=1;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontStyle=1;`;
       } else if (n.type==='conector') {
-        style=`shape=ellipse;fillColor=none;strokeColor=#000000;strokeWidth=2;${baseFont}fontSize=9;html=1;whiteSpace=wrap;align=center;`;
+        style = `shape=ellipse;fillColor=none;strokeColor=#000000;strokeWidth=2;${baseFont}fontSize=9;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;`;
       } else {
-        style=`shape=rectangle;perimeter=rectanglePerimeter;rounded=0;fillColor=none;strokeColor=#0000FF;strokeWidth=2;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;`;
+        style = `shape=rectangle;perimeter=rectanglePerimeter;rounded=0;fillColor=none;strokeColor=#0000FF;strokeWidth=1;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;verticalAlign=middle;`;
       }
 
       fullXml += `\n    <mxCell id="${nid}" value="${esc(n.label)}" style="${style}" vertex="1" parent="1">\n      <mxGeometry x="${drawX}" y="${drawY}" width="${fs2}" height="${fh2}" as="geometry"/>\n    </mxCell>`;
 
-      // Marcador de secuencia (número del paso)
-      if (n.type!=='terminator'&&n.type!=='conector') {
-        const seq=nodes.slice(0,i+1).filter(x=>x.type==='action'||x.type==='decision').length;
+      // Marcador de secuencia
+      if (n.type!=='terminator' && n.type!=='conector') {
+        const seq = nodes.slice(0,i+1).filter(x=>x.type==='action'||x.type==='decision').length;
         fullXml += `\n    <mxCell id="marker_${markerIdCtr++}" value="${seq}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontFamily=Arial Narrow;fontColor=#333333;fontStyle=1;" vertex="1" parent="1">\n      <mxGeometry x="${snap(drawX+fs2-16)}" y="${snap(drawY-20)}" width="16" height="16" as="geometry"/>\n    </mxCell>`;
       }
 
       // Par de entrada del conector
-      if (n.type==='conector'&&pairMap[i]) {
-        const pr=pairMap[i];
-        fullXml += `\n    <mxCell id="${pr.pairId}" value="${esc(pr.label)}" style="shape=ellipse;fillColor=none;strokeColor=#000000;strokeWidth=1;${baseFont}fontSize=9;html=1;whiteSpace=wrap;align=center;" vertex="1" parent="1">\n      <mxGeometry x="${pr.absX}" y="${snap(pr.absY+offsetY)}" width="${CONN_SIZE}" height="${CONN_SIZE}" as="geometry"/>\n    </mxCell>`;
+      if (n.type==='conector' && pairMap[i]) {
+        const pr = pairMap[i];
+        fullXml += `\n    <mxCell id="${pr.pairId}" value="${esc(pr.label)}" style="shape=ellipse;fillColor=none;strokeColor=#000000;strokeWidth=1;${baseFont}fontSize=9;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;" vertex="1" parent="1">\n      <mxGeometry x="${pr.absX}" y="${pr.absY}" width="${CONN_SIZE}" height="${CONN_SIZE}" as="geometry"/>\n    </mxCell>`;
       }
     });
 
-    // ── Aristas (targets) ─────────────────────────────────────────
+    // Aristas
     const resolveId = val => {
       if (val === null) return null;
       if (typeof val === 'string') return val;
@@ -1054,110 +1073,109 @@ function generateXML() {
     };
 
     const decisionTargets = new Set();
-    pageNodes.forEach(({n})=>{
+    pageNodes.forEach(({n}) => {
       if (n.type==='decision') {
-        const si=resolveTarget(n.siTarget), no=resolveTarget(n.noTarget);
+        const si = resolveTarget(n.siTarget), no = resolveTarget(n.noTarget);
         if (si!==null) decisionTargets.add(si);
         if (no!==null) decisionTargets.add(no);
       }
     });
 
-    pageNodes.forEach(({n,i})=>{
-      const src=nodeIds[i], p=positions[i]; if(!p) return;
+    pageNodes.forEach(({n,i}) => {
+      const src = nodeIds[i], p = positions[i]; if (!p) return;
 
       if (n.type==='decision') {
-        // ── Rama SÍ: sale por el borde inferior ──────────────────
-        const siVal=resolveTarget(n.siTarget);
-        const siId=resolveId(siVal);
-        if (siId!==null) {
-          const eid=`edge_${edgeId++}`;
-          const tp=resolvePos(siVal);
+        // ── Rama SÍ: entra por la parte superior del destino ──────
+        const siVal = resolveTarget(n.siTarget);
+        const siId  = resolveId(siVal);
+        if (siId !== null) {
+          const eid = `edge_${edgeId++}`;
+          const tp  = resolvePos(siVal);
           if (tp) {
-            const sameLane=(tp.actorIdx===p.actorIdx);
+            const sameLane = (tp.actorIdx === p.actorIdx);
             if (sameLane) {
-              fullXml+=`\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${siId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
+              fullXml += `\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${siId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
             } else {
-              fullXml+=`\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${siId}" parent="1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="${snap(p.Xnode+p.fw/2)}" y="${snap(tp.Yrow+offsetY+tp.fh/2)}"/></Array></mxGeometry></mxCell>`;
+              fullXml += `\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${siId}" parent="1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="${snap(p.Xnode+p.fw/2)}" y="${snap(tp.Yrow+tp.fh/2)}"/></Array></mxGeometry></mxCell>`;
             }
           } else {
-            fullXml+=`\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${siId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
+            fullXml += `\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${siId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
           }
-          // Etiqueta SÍ cerca del source (decisión)
-          fullXml+=`\n    <mxCell id="elbl_${edgeId++}" value="${esc(n.yes||'Sí')}" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];${baseFont}fontStyle=1;" vertex="1" connectable="0" parent="${eid}"><mxGeometry x="-0.8" y="0" relative="1" as="geometry"><mxPoint as="offset" x="-10" y="-12"/></mxGeometry></mxCell>`;
+          fullXml += `\n    <mxCell id="elbl_${edgeId++}" value="${esc(n.yes||'Sí')}" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];${baseFont}fontStyle=1;" vertex="1" connectable="0" parent="${eid}"><mxGeometry x="-0.8" y="0" relative="1" as="geometry"><mxPoint as="offset" x="-10" y="-12"/></mxGeometry></mxCell>`;
         }
 
-        // ── Rama NO: sale por el borde derecho ───────────────────
-        const noVal=resolveTarget(n.noTarget);
-        const noId=resolveId(noVal);
-        if (noId!==null) {
-          const eid=`edge_${edgeId++}`;
-          const tp=resolvePos(noVal);
+        // ── Rama NO: sale izquierda o derecha según distancia ─────
+        const noVal = resolveTarget(n.noTarget);
+        const noId  = resolveId(noVal);
+        if (noId !== null) {
+          const eid    = `edge_${edgeId++}`;
+          const tp     = resolvePos(noVal);
           if (tp) {
-            const sameRow=(tp.row===p.row);
+            const goLeft = tp.actorIdx < p.actorIdx;
+            const exitX  = goLeft ? '0' : '1';
+            const entryX = goLeft ? '1' : '0';
+            const sameRow = (tp.row === p.row);
             if (sameRow) {
-              fullXml+=`\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${noId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
+              fullXml += `\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=${exitX};exitY=0.5;exitDx=0;exitDy=0;entryX=${entryX};entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${noId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
             } else {
-              fullXml+=`\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${noId}" parent="1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="${snap(tp.Xcol+tp.fw/2)}" y="${snap(p.Yrow+offsetY+p.fh/2)}"/></Array></mxGeometry></mxCell>`;
+              fullXml += `\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=${exitX};exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${noId}" parent="1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="${snap(tp.Xcol+tp.fw/2)}" y="${snap(p.Yrow+p.fh/2)}"/></Array></mxGeometry></mxCell>`;
             }
           } else {
-            fullXml+=`\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${noId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
+            fullXml += `\n    <mxCell id="${eid}" value="" style="${baseEdge}exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${noId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
           }
-          // Etiqueta NO cerca del source (decisión)
-          fullXml+=`\n    <mxCell id="elbl_${edgeId++}" value="${esc(n.no||'No')}" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];${baseFont}fontStyle=1;" vertex="1" connectable="0" parent="${eid}"><mxGeometry x="-0.8" y="0" relative="1" as="geometry"><mxPoint as="offset" x="10" y="-12"/></mxGeometry></mxCell>`;
+          fullXml += `\n    <mxCell id="elbl_${edgeId++}" value="${esc(n.no||'No')}" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];${baseFont}fontStyle=1;" vertex="1" connectable="0" parent="${eid}"><mxGeometry x="-0.8" y="0" relative="1" as="geometry"><mxPoint as="offset" x="10" y="-12"/></mxGeometry></mxCell>`;
         }
 
       } else if (n.type==='conector') {
-        // ── Conector: arista hacia su par de entrada ──────────────
-        const tgtVal=resolveTarget(n.target);
-        const tgtId=resolveId(tgtVal);
-        if (tgtId!==null) {
-          const pair=pairMap[i];
-          const finalTgtId=pair?pair.pairId:tgtId;
-          const tp=resolvePos(tgtVal);
-          const cp=positions[i];
-          let exitX='0.5',exitY='1',entryX='0.5',entryY='0';
-          if (tp&&cp) {
-            const goRight=(tp.actorIdx>cp.actorIdx);
-            const goDown=(tp.row>cp.row);
-            const goUp=(tp.row<cp.row);
-            if (goRight&&!goDown&&!goUp) { exitX='1';exitY='0.5';entryX='0';entryY='0.5'; }
-            else if (goUp)              { exitX='0.5';exitY='0';entryX='0.5';entryY='1'; }
-            else                        { exitX='0.5';exitY='1';entryX='0.5';entryY='0'; }
+        // ── Conector → par de entrada ─────────────────────────────
+        const tgtVal = resolveTarget(n.target);
+        const tgtId  = resolveId(tgtVal);
+        if (tgtId !== null) {
+          const pair       = pairMap[i];
+          const finalTgtId = pair ? pair.pairId : tgtId;
+          const tp = resolvePos(tgtVal);
+          const cp = positions[i];
+          let exitX='0.5', exitY='1', entryX='0.5', entryY='0';
+          if (tp && cp) {
+            const goRight = (tp.actorIdx > cp.actorIdx);
+            const goUp    = (tp.row < cp.row);
+            if (goRight && tp.row === cp.row) { exitX='1'; exitY='0.5'; entryX='0'; entryY='0.5'; }
+            else if (goUp)                    { exitX='0.5'; exitY='0'; entryX='0.5'; entryY='1'; }
           }
-          fullXml+=`\n    <mxCell id="edge_${edgeId++}" value="" style="${baseEdge}exitX=${exitX};exitY=${exitY};exitDx=0;exitDy=0;entryX=${entryX};entryY=${entryY};entryDx=0;entryDy=0;" edge="1" source="${src}" target="${finalTgtId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
+          fullXml += `\n    <mxCell id="edge_${edgeId++}" value="" style="${baseEdge}exitX=${exitX};exitY=${exitY};exitDx=0;exitDy=0;entryX=${entryX};entryY=${entryY};entryDx=0;entryDy=0;" edge="1" source="${src}" target="${finalTgtId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
           if (pair) {
-            fullXml+=`\n    <mxCell id="edge_${edgeId++}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${pair.pairId}" target="${tgtId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
+            fullXml += `\n    <mxCell id="edge_${edgeId++}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${pair.pairId}" target="${tgtId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
           }
         }
 
       } else {
-        // ── Nodos de flujo ─────────────────────────────────────────
-        if (n._jump!==undefined&&n._jump!==null) {
-          const jVal=resolveTarget(n._jump);
-          const jId=resolveId(jVal);
-          if (jId!==null) {
-            fullXml+=`\n    <mxCell id="edge_${edgeId++}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${jId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
+        // ── Nodos de flujo normales ────────────────────────────────
+        if (n._jump !== undefined && n._jump !== null) {
+          const jVal = resolveTarget(n._jump);
+          const jId  = resolveId(jVal);
+          if (jId !== null) {
+            fullXml += `\n    <mxCell id="edge_${edgeId++}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${jId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
           }
           return;
         }
-        const nextInPage = pageNodes.find(({n:nn,i:ni})=>ni>i&&isFlowType(nn.type)&&positions[ni]!==null);
+        const nextInPage = pageNodes.find(({n:nn,i:ni}) => ni>i && isFlowType(nn.type) && positions[ni]!==null);
         if (!nextInPage) return;
         const {i:nx} = nextInPage;
-        const prevIsDec = i>0&&nodes[i-1]&&nodes[i-1].type==='decision';
-        if (prevIsDec&&decisionTargets.has(nx)) return;
-        const pn=positions[nx]; if(!pn) return;
-        fullXml+=`\n    <mxCell id="edge_${edgeId++}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${nodeIds[nx]}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
+        const prevIsDec = i>0 && nodes[i-1] && nodes[i-1].type==='decision';
+        if (prevIsDec && decisionTargets.has(nx)) return;
+        const pn = positions[nx]; if (!pn) return;
+        fullXml += `\n    <mxCell id="edge_${edgeId++}" value="" style="${baseEdge}exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="${src}" target="${nodeIds[nx]}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`;
       }
-    }); // fin pageNodes.forEach aristas
+    });
 
     fullXml += `\n      </root>\n    </mxGraphModel>\n  </diagram>`;
-  } // fin bucle páginas
+  }
 
   fullXml += `\n</mxfile>`;
 
   document.getElementById('xml-output').textContent = fullXml;
   document.getElementById('xml-output').dataset.filename = processName;
-  document.getElementById('output-metrics').innerHTML=`
+  document.getElementById('output-metrics').innerHTML = `
     <div class="metrics">
       <div class="metric"><div class="val">${countFlowNodes()}</div><div class="lbl">Nodos de flujo</div></div>
       <div class="metric"><div class="val">${nodes.filter(n=>n.type==='conector').length}</div><div class="lbl">Conectores</div></div>
@@ -1168,27 +1186,31 @@ function generateXML() {
   showTab('output');
 }
 
-// ── COPIAR XML ────────────────────────────────────────────────────
+// ── COPIAR / DESCARGAR XML ────────────────────────────────────────
 function copyXML() {
-  const pre=document.getElementById('xml-output'), txt=pre.textContent;
+  const pre = document.getElementById('xml-output'), txt = pre.textContent;
   if (txt==='— El XML aparecerá aquí —') { showAlert('Genera el XML primero.'); return; }
-  const filename=(pre.dataset.filename||'Proceso').replace(/[^a-zA-Z0-9_\-áéíóúÁÉÍÓÚñÑ ]/g,'').trim()||'Proceso';
+  const filename = (pre.dataset.filename||'Proceso').replace(/[^a-zA-Z0-9_\-áéíóúÁÉÍÓÚñÑ ]/g,'').trim() || 'Proceso';
   if (window.showSaveFilePicker) {
-    window.showSaveFilePicker({suggestedName:filename+'.xml',types:[{description:'Archivo XML',accept:{'text/xml':['.xml']}}]})
-      .then(h=>h.createWritable()).then(w=>{w.write(txt);return w.close();})
-      .then(()=>showCopyMsg(`✓ Guardado como "${filename}.xml"`))
-      .catch(()=>fallbackCopy(txt,filename));
-  } else fallbackCopy(txt,filename);
+    window.showSaveFilePicker({ suggestedName: filename+'.xml', types:[{ description:'Archivo XML', accept:{'text/xml':['.xml']} }] })
+      .then(h => h.createWritable()).then(w => { w.write(txt); return w.close(); })
+      .then(() => showCopyMsg(`✓ Guardado como "${filename}.xml"`))
+      .catch(() => fallbackCopy(txt, filename));
+  } else {
+    fallbackCopy(txt, filename);
+  }
 }
-function fallbackCopy(txt,filename) {
+function fallbackCopy(txt, filename) {
   navigator.clipboard.writeText(txt)
-    .then(()=>showCopyMsg(`✓ ¡Copiado! Guárdalo como "${filename}.xml"`))
-    .catch(err=>showAlert('Error al copiar: '+err));
+    .then(() => showCopyMsg(`✓ ¡Copiado! Guárdalo como "${filename}.xml"`))
+    .catch(err => showAlert('Error al copiar: '+err));
 }
 function showCopyMsg(msg) {
-  const el=document.getElementById('copy-msg'); el.textContent=msg; el.style.display='block';
-  setTimeout(()=>{el.style.display='none';},3500);
+  const el = document.getElementById('copy-msg');
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3500);
 }
+
 // ── SNIPPET BADGES ────────────────────────────────────────────────
 let responsableActivo = null;
 
@@ -1215,7 +1237,7 @@ function seleccionarResponsable(i) {
 }
 
 function addResponsable() {
-  if (actors.length >= MAX_ACTORS) { showToast(`⚠ Límite: máximo ${MAX_ACTORS} responsables.`); return; }
+  if (actors.length >= 20) { showToast('⚠ Límite: máximo 20 responsables.'); return; }
   const nombre = prompt('Nombre del responsable:');
   if (!nombre || !nombre.trim()) return;
   actors.push({ name: nombre.trim().toUpperCase() });
@@ -1269,9 +1291,7 @@ function renumerarConectores() {
   let idx = 0;
   const mapaLetras = {};
   ta.value = ta.value.replace(/\[([A-Z])\]/g, (match, letra) => {
-    if (mapaLetras[letra] === undefined) {
-      mapaLetras[letra] = letras[idx++] || letra;
-    }
+    if (mapaLetras[letra] === undefined) mapaLetras[letra] = letras[idx++] || letra;
     return `[${mapaLetras[letra]}]`;
   });
   saveSession();
@@ -1289,14 +1309,14 @@ function insertSnippet(text) {
 function insertSnippetAccion() {
   const n = getNextStepNum();
   const actor = getActorActivo();
-  insertSnippet(`\n${n}. (${actor}), Descripción`);
+  insertSnippet(`\n${n}. (${actor}), Nueva actividad`);
   renumerarPasos();
 }
 
 function insertSnippetDecision() {
   const n = getNextStepNum();
   const actor = getActorActivo();
-  insertSnippet(`\n${n}. (${actor}), ¿Decisión?\nsi: ir a \nno: ir a `);
+  insertSnippet(`\n${n}. (${actor}), Decisión\nsi: ir a \nno: ir a `);
   renumerarPasos();
 }
 
@@ -1305,11 +1325,12 @@ function insertSnippetConector() {
   insertSnippet(`\n[${letra}].\nir a `);
   renumerarConectores();
 }
+
 // ── FLUJO TOOLBAR (Tab 1) ─────────────────────────────────────────
 let flujoToolbarOpen = false;
 function setFlujoToolbarOpen(open) {
   const drawer = document.getElementById('flujo-toolbar-drawer');
-  const tab = document.getElementById('flujo-toolbar-tab');
+  const tab    = document.getElementById('flujo-toolbar-tab');
   if (!drawer || !tab) return;
   flujoToolbarOpen = !!open;
   drawer.classList.toggle('open', flujoToolbarOpen);
@@ -1320,6 +1341,7 @@ function setFlujoToolbarOpen(open) {
 function toggleFlujoToolbar() {
   setFlujoToolbarOpen(!flujoToolbarOpen);
 }
+
 // ── EJEMPLO ───────────────────────────────────────────────────────
 function cargarEjemplo() {
   const ejemplo = `INICIO
@@ -1332,11 +1354,11 @@ NO ir a [A]
 [A]. 
 ir a fin
 
-3. (Presidente CEI-FOSCAL), Es una renuncai, fin periodo, sustitucion, descalificación?
+3. (Presidente CEI-FOSCAL), Es una renuncia, fin periodo, sustitucion, descalificación?
 SI ir a 4
 NO ir a [A]
 
-4. (Presidente CEI-FOSCAL), Efectuar comvocatoria para nuevos miembros
+4. (Presidente CEI-FOSCAL), Efectuar convocatoria para nuevos miembros
 
 5. (Asistente administrativa y/o profesional administrativa del CEI), Recibir documentos de postulación
 
@@ -1348,17 +1370,11 @@ NO ir a [A]
 
 9. (Presidente CEI-FOSCAL), Tomar decisión en consenso
 
-10. (Presidente CEI-FOSCAL),Efectuar carta de notificación de nombramiento
+10. (Presidente CEI-FOSCAL), Efectuar carta de notificación de nombramiento
 
 11. (Miembro Nuevo del CEI-FOSCAL), Entregar acuerdo de confidencialidad
 
 12. (Presidente CEI-FOSCAL), Realizar inducción
-
-13. (Profesional administrativa del CEI), Entregar documentos para lectura cumplimiento de entrenamiento
-
-14. (Profesional administrativa del CEI), Actualizar listado nuevos miembros del comité
-
-15. (Secretaria administrativa), Archiva documentación, informa el ingreso/renuncia de miembros del CEI-Foscal
 FIN`;
   showConfirm('¿Reemplazar el texto actual con el ejemplo?', () => {
     document.getElementById('inputText').value = ejemplo;
@@ -1380,16 +1396,16 @@ function guardarTexto() {
 
 function abrirBiblioteca() {
   const biblioteca = JSON.parse(localStorage.getItem('flujograma_biblioteca') || '[]');
-  const lista = document.getElementById('biblioteca-list');
+  const lista   = document.getElementById('biblioteca-list');
   const overlay = document.getElementById('biblioteca-overlay');
   if (biblioteca.length === 0) {
-    lista.innerHTML = '<p style="font-size:9.5pt;color:#666;font-family:Space Grotesk,sans-serif;">No hay guardados aún.</p>';
+    lista.innerHTML = '<p style="font-size:9.5pt;color:#000;font-family:Space Grotesk,sans-serif;">No hay guardados aún.</p>';
   } else {
     lista.innerHTML = biblioteca.map((item, i) => `
       <div style="border:3px solid #000;padding:10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <div>
           <div style="font-weight:700;font-size:9.5pt;">${item.nombre}</div>
-          <div style="font-size:8pt;color:#666;">${item.fecha}</div>
+          <div style="font-size:8pt;color:#000;">${item.fecha}</div>
         </div>
         <div style="display:flex;gap:6px;">
           <button class="btn" style="margin:0;padding:5px 10px;font-size:8pt;" onclick="cargarDeBiblioteca(${i})">Cargar</button>
@@ -1422,7 +1438,7 @@ function eliminarDeBiblioteca(i) {
 
 // ── AUTOCOMPLETADO ────────────────────────────────────────────────
 function initAutocomplete() {
-  const ta = document.getElementById('inputText');
+  const ta   = document.getElementById('inputText');
   const list = document.getElementById('autocomplete-list');
   if (!ta || !list) return;
   ta.addEventListener('input', () => { saveSession(); checkAutocomplete(); });
@@ -1431,18 +1447,18 @@ function initAutocomplete() {
 }
 
 function checkAutocomplete() {
-  const ta = document.getElementById('inputText');
+  const ta   = document.getElementById('inputText');
   const list = document.getElementById('autocomplete-list');
   const textoBefore = ta.value.substring(0, ta.selectionStart);
-  const lineActual = textoBefore.split('\n').pop();
+  const lineActual  = textoBefore.split('\n').pop();
   const mActor = lineActual.match(/\(\s*([^)]*)$/);
-  const mIr = lineActual.match(/ir\s+a\s+(\w*)$/i);
+  const mIr    = lineActual.match(/ir\s+a\s+(\w*)$/i);
   let sugerencias = [];
 
   if (mActor && mActor[1].length > 0) {
-    const query = mActor[1].toLowerCase();
+    const query   = mActor[1].toLowerCase();
     const actores = [...new Set(ta.value.match(/\(\s*([^)]+?)\s*\)/g)?.map(m => m.replace(/[()]/g,'').trim()) || [])];
-    sugerencias = actores.filter(a => a.toLowerCase().includes(query));
+    sugerencias   = actores.filter(a => a.toLowerCase().includes(query));
   } else if (mIr) {
     const query = mIr[1];
     const pasos = [...new Set([...ta.value.matchAll(/^(\d+)\./gm)].map(m => m[1]))];
@@ -1452,8 +1468,8 @@ function checkAutocomplete() {
   if (!sugerencias.length) { list.style.display = 'none'; return; }
 
   const rect = ta.getBoundingClientRect();
-  list.style.left = rect.left + 'px';
-  list.style.top = (rect.bottom - 2) + 'px';
+  list.style.left  = rect.left + 'px';
+  list.style.top   = (rect.bottom - 2) + 'px';
   list.style.width = '220px';
   list.innerHTML = sugerencias.map(s =>
     `<div style="padding:7px 12px;cursor:pointer;border-bottom:2px solid #eee;" onmousedown="aplicarAutocomplete('${s}',${!!mActor})">${s}</div>`
@@ -1463,10 +1479,10 @@ function checkAutocomplete() {
 
 function aplicarAutocomplete(valor, esActor) {
   const ta = document.getElementById('inputText');
-  const pos = ta.selectionStart;
-  const antes = ta.value.substring(0, pos);
-  const despues = ta.value.substring(pos);
-  const nuevo = esActor
+  const pos    = ta.selectionStart;
+  const antes  = ta.value.substring(0, pos);
+  const despues= ta.value.substring(pos);
+  const nuevo  = esActor
     ? antes.replace(/\(\s*[^)]*$/, '(' + valor + ')')
     : antes.replace(/ir\s+a\s+\w*$/i, 'ir a ' + valor);
   ta.value = nuevo + despues;
@@ -1475,9 +1491,10 @@ function aplicarAutocomplete(valor, esActor) {
   document.getElementById('autocomplete-list').style.display = 'none';
   saveSession();
 }
+
 // ── INIT ──────────────────────────────────────────────────────────
-window.addEventListener('load',()=>{
-  const restored = loadSession();
+window.addEventListener('load', () => {
+  loadSession();
   setImportSplitExpanded(false);
   setFlujoToolbarOpen(false);
   setNodesToolbarOpen(false);
