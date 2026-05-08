@@ -130,6 +130,7 @@ input, select, textarea {
   margin-bottom: 12px;
   outline: none;
   border-radius: 0;
+  appearance: none;
   -webkit-appearance: none;
   transition: border-color 0.1s, box-shadow 0.1s;
 }
@@ -1316,6 +1317,6 @@ hr { border: none; border-top: 4px solid var(--fg); margin: 20px 0; }
   .btn-remove::before { width: 12px; height: 12px; }
   .kanban-row-num { width: 30px; min-height: 64px; }
   .kanban-cell { min-height: 64px; }
-  .kanban-cell-label { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .kanban-cell-label { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-clamp: 3; }
   .kanban-cell-drag { display: none; }
 }

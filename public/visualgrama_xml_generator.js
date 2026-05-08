@@ -351,10 +351,13 @@ const MARGIN_X  = 5;
 const MARGIN_Y  = 10;
 
 const FIG_MIN = {
-  action:     { w: 100, h: 40 },
+  action:     { w: 110, h: 40 },
   decision:   { w: 110, h: 50 },
-  terminator: { w:  70, h: 20 },
-  conector:   { w:  20, h: 20 },
+};
+
+const FIG_MAX = {
+  action:     { w: 140, h: 60 },
+  decision:   { w: 140, h: 60 },
 };
 
 function lookupDim(flowNodesForPage, actorCount) {
@@ -387,13 +390,18 @@ function calcPages(totalFlowNodes) {
   return dist;
 }
 
-function figSize(type, RH, NW) {
+function figSize(type, RH, NW, actorCount = 1, flowNodesForPage = 1) {
   if (type === 'conector')   return { w: CONN_SIZE, h: CONN_SIZE };
   if (type === 'terminator') return { w: 70, h: 20 };
-  const minH = FIG_MIN[type].h;
-  const minW = FIG_MIN[type].w;
-  const w = Math.min(Math.max(snap(NW), minW), 200);
-  const h = Math.min(Math.max(snap(RH - MARGIN_Y * 2), minH), RH);
+
+  const min = FIG_MIN[type];
+  const max = FIG_MAX[type];
+  if (!min || !max) return { w: snap(NW), h: snap(RH) };
+
+  if (actorCount > 6 || flowNodesForPage > 10) return { ...min };
+
+  const w = Math.min(Math.max(snap(NW), min.w), max.w);
+  const h = Math.min(Math.max(snap(RH - MARGIN_Y * 2), min.h), max.h);
   return { w, h };
 }
 
@@ -926,8 +934,8 @@ function generateXML() {
       const ai    = actorIndexLocal[n.actor] ?? 0;
       const Xcol  = snap(ai * m.CW);
       const Yrow  = snap(HEADER_H + ROW_H_TERM + rowCounter * m.RH);
-      const fs    = figSize(n.type, m.RH, m.NW);
-      const mxPx  = MARGIN_X;
+      const fs    = figSize(n.type, m.RH, m.NW, pageActorCount, totalFilasPagina);
+      const mxPx  = snap((m.CW - fs.w) / 2);
       const myPx  = snap((m.RH - fs.h) / 2);
       const Xnode = snap(Xcol + mxPx);
       const Ynode = snap(Yrow + myPx);
@@ -1040,7 +1048,7 @@ function generateXML() {
       } else if (n.type==='decision') {
         style = `shape=rhombus;perimeter=rhombusPerimeter;fillColor=none;strokeColor=#FF8000;strokeWidth=1;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontStyle=1;`;
       } else if (n.type==='conector') {
-        style = `shape=ellipse;fillColor=none;strokeColor=#000000;strokeWidth=2;${baseFont}fontSize=9;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;`;
+        style = `shape=ellipse;fillColor=none;strokeColor=#000000;strokeWidth=1;${baseFont}fontSize=9;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;`;
       } else {
         style = `shape=rectangle;perimeter=rectanglePerimeter;rounded=0;fillColor=none;strokeColor=#0000FF;strokeWidth=1;${baseFont}fontSize=${textSz};html=1;whiteSpace=wrap;align=center;verticalAlign=middle;`;
       }
