@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Procesador a Draw.io XML</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/nodes.css">
+<link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+<div id="modal-root"></div>
+
+<div class="section">
+
+  <div class="title-row">
+    <h2>Procesador FLUJOGRAMA → Draw.io XML</h2>
+    <div class="title-brand">
+      <img src="foscal.png" alt="Clínica Foscal" class="title-brand-logo">
+      <p class="title-brand-text">Gerencia de Mejoramiento y Riesgo</p>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button id="btn-tab-import" class="tab active" onclick="showTab('import')">1. Texto</button>
+    <button id="btn-tab-nodes" class="tab" onclick="showTab('nodes')">2. Actividades</button>
+    <button id="btn-tab-output" class="tab" onclick="showTab('output')">3. XML</button>
+  </div>
+
+  <div id="tab-import-root"></div>
+  <div id="tab-nodes-root"></div>
+  <div id="tab-output-root"></div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/nodes.js"></script>
+<script src="js/xml.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>

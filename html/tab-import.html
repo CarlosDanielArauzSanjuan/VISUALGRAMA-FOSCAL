@@ -1,0 +1,76 @@
+<div id="tab-import">
+
+  <div class="tab1-top">
+    <div class="tab1-process-box">
+      <label>Nombre del proceso</label>
+      <input type="text" id="processName" value="Mi Proceso" placeholder="Ej: Administración de medicamentos" oninput="saveSession()">
+    </div>
+  </div>
+
+  <div class="tab1-toolbar-wrap">
+    <div class="flujo-toolbar-drawer" id="flujo-toolbar-drawer" style="top: 480px ;">
+      <button type="button" class="flujo-toolbar-tab" id="flujo-toolbar-tab"
+        onclick="toggleFlujoToolbar()"
+        aria-controls="flujo-toolbar-panel"
+        aria-expanded="false">Flujo</button>
+      <div class="flujo-toolbar-panel" id="flujo-toolbar-panel">
+        <span class="snippet-badge" onclick="insertSnippet('INICIO\n\nFIN')">INICIO / FIN</span>
+        <span class="snippet-badge" onclick="insertSnippetAccion()">+ Acción</span>
+        <span class="snippet-badge" onclick="insertSnippetDecision()">+ Decisión</span>
+        <span class="snippet-badge" onclick="insertSnippetConector()">+ Conector</span>
+      </div>
+    </div>
+
+    <div class="tab1-col tab1-col--responsables">
+      <div class="tab1-col-title-row">
+        <span class="tab1-col-title">Responsables</span>
+        <button class="btn-add-resp" onclick="addResponsable()">+ Agregar</button>
+      </div>
+      <div id="responsables-badges" class="responsables-badges"></div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <div class="sh-text">
+      <h3>Texto del protocolo</h3>
+      <div id="error-container"></div>
+    </div>
+    <div class="sh-btn"><button class="btn-clear" onclick="clearTexto()">Limpiar texto</button></div>
+  </div>
+
+  <div class="import-actions">
+    <button class="btn" onclick="cargarEjemplo()">Ejemplo</button>
+   <!-- <button class="btn" onclick="guardarTexto()">💾 Guardar</button>
+    <button class="btn" onclick="abrirBiblioteca()">📂 Guardados</button>-->
+    <button class="btn btn-primary" onclick="soloExtraer()">Extraer</button>
+    <button class="btn btn-primary" style="background:#22c55e;border-color:#37c91d;" id="btn-continuar-tab2" onclick="continuarAActividades()" disabled>Continuar
+    </button>
+  </div>
+
+  <div class="import-split import-split--single">
+    <div class="import-left">
+      <textarea id="inputText" rows="14" placeholder="Ejemplo:
+INICIO
+1. (Persona Responsable de Caja Menor), Solicitar el Reembolso de la caja menor a la Subgerencia de Contabilidad
+
+2. (Analista Contable), Verificar los soportes de solicitud del reembolso
+
+3. (Analista Contable), Los soportes y el sistema corresponden? 
+SI ir a 4
+NO ir a 1
+
+4. (Analista Contable), Contabilizar el reembolso en el sistema de información
+
+5. (Analista Contable), Informar a la Subgerencia de Tesorería para el respectivo pago 
+
+6. (Analista Contable), Archivar los soportes contables digitalmente
+FIN "
+oninput="saveSession()"></textarea>
+    </div>
+    <div class="import-right">
+      <div id="parse-summary-box" style="display:none"></div>
+      <div id="parse-log" class="parse-log"></div>
+    </div>
+  </div>
+
+</div>

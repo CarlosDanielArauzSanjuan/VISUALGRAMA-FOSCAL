@@ -1,0 +1,75 @@
+/* ── RESPONSIVE SHADOWS ──────────────────────────────────────── */
+@media (max-width: 599px) {
+  :root {
+    --shadow:    4px 4px 0px 0px #000;
+    --shadow-sm: 3px 3px 0px 0px #000;
+    --shadow-xs: 2px 2px 0px 0px #000;
+  }
+  .node-block { padding: 10px; }
+  .metric .val { font-size: 18pt; }
+  pre { font-size: 7.5pt; padding: 10px; }
+  .btn-primary { font-size: 10pt; padding: 12px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .config-top-row { grid-template-columns: 1fr; gap: 8px; }
+  .actors-list { max-height: 340px; }
+  .config-bottom-row { grid-template-columns: 1fr; align-items: stretch; }
+  .config-actions, .config-metrics-wrap, .config-right-actions { width: 100%; }
+  .config-actions { flex-wrap: wrap; }
+  .config-metrics-wrap { flex-direction: column; align-items: flex-start; min-width: 0; gap: 4px; }
+  .config-right-actions { justify-content: flex-end; flex-wrap: wrap; }
+
+  .nodes-toolbar-drawer { position: static; transform: none; margin-top: 8px; }
+  .nodes-toolbar-drawer.open { transform: none; }
+  .nodes-toolbar-tab { display: none; }
+  .nodes-toolbar-panel { width: 100%; min-width: 0; flex-direction: row; flex-wrap: wrap; }
+  .nodes-toolbar-panel .btn { width: auto; flex: 1 1 180px; }
+
+  .flujo-toolbar-drawer { position: static; transform: none; }
+  .flujo-toolbar-drawer.open { transform: none; }
+  .flujo-toolbar-tab { display: none; }
+  .flujo-toolbar-panel { width: 100%; flex-direction: row; flex-wrap: wrap; order: unset; }
+  .tab1-toolbar-wrap { flex-direction: column; }
+
+  .title-row { flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 16px; }
+  .title-brand { min-width: 0; width: 100%; justify-content: space-between; padding: 8px 10px; }
+  .title-brand-logo { height: 36px; }
+  .title-brand-text { text-align: left; max-width: none; font-size: 8pt; }
+
+  .import-split { grid-template-columns: 1fr; }
+  .import-left #inputText, .import-right { min-height: 360px; }
+  .import-right .parse-log { min-height: 180px; }
+  .import-actions { flex-wrap: wrap; }
+  .import-actions .btn { min-width: 220px; flex: 1 1 220px; }
+
+  .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; border-bottom: none; margin-bottom: 2px; }
+  .tab { margin-right: 0; min-height: 52px; padding: 10px 8px; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.15; border-bottom: 4px solid var(--fg); transform: none; }
+  .tab:hover, .tab.active { transform: none; }
+  #tab-import, #tab-config, #tab-nodes, #tab-output { border-top: 4px solid var(--fg); }
+
+  .kanban-col-header { font-size: 8pt; padding: 8px 6px; letter-spacing: 0.04em; }
+  .kanban-row-num { width: 34px; min-height: 72px; font-size: 8pt; }
+  .kanban-cell { min-height: 72px; }
+  .kanban-cell--filled { padding: 6px; }
+  .kanban-cell-type { font-size: 6.5pt; letter-spacing: 0.05em; margin-top: 4px; margin-bottom: 3px; }
+  .kanban-cell-label { font-size: 8pt; line-height: 1.25; }
+  .kanban-cell-drag { font-size: 10pt; right: 4px; bottom: 3px; }
+}
+
+@media (max-width: 599px) {
+  .title-brand-logo { height: 32px; }
+  .title-brand-text { font-size: 7.5pt; line-height: 1.35; }
+  .import-left #inputText, .import-right { min-height: 300px; }
+  .btn-clear { font-size: 7.5pt; padding: 5px 5px; }
+  .btn-clear::before { width: 11px; height: 11px; }
+  .btn-remove { width: 30px; min-width: 30px; height: 30px; }
+  .btn-remove::before { width: 12px; height: 12px; }
+  .kanban-row-num { width: 30px; min-height: 64px; }
+  .kanban-cell { min-height: 64px; }
+  .kanban-cell-label { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-clamp: 3; }
+  .kanban-cell-drag { display: none; }
+}

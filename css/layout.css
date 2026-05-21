@@ -1,0 +1,107 @@
+/* ── TABS ────────────────────────────────────────────────────── */
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin-bottom: 0;
+  border-bottom: 4px solid var(--fg);
+  position: relative;
+  z-index: 300;
+}
+
+.tab {
+  padding: 8px 6px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  border: 4px solid var(--fg);
+  border-bottom: none;
+  background: var(--card);
+  color: var(--fg);
+  margin-right: 2px;
+  transition: background 0.1s, color 0.1s, transform 0.1s;
+  transform: translateY(4px);
+  position: relative;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 901px) {
+  .tabs { display: flex; grid-template-columns: unset; }
+  .tab { padding: 10px 18px; font-size: 9.5pt; letter-spacing: 0.05em; margin-right: 3px; }
+}
+.tab:hover {
+  background: var(--accent);
+  color: var(--accent-fg);
+  transform: translateY(2px);
+}
+.tab.active {
+  background: var(--fg);
+  color: #fff;
+  transform: translateY(0);
+}
+
+/* ── TAB PANELS ──────────────────────────────────────────────── */
+#tab-import, #tab-config, #tab-nodes, #tab-output {
+  background: var(--card);
+  border: 4px solid var(--fg);
+  border-top: none;
+  box-shadow: var(--shadow);
+  padding: 14px 12px;
+}
+@media (min-width: 600px) {
+  #tab-import, #tab-config, #tab-nodes, #tab-output { padding: 24px; }
+}
+#tab-nodes {
+  max-height: none;
+  overflow: visible;
+}
+
+/* ── TAB 1 (IMPORT) SPLIT ────────────────────────────────────── */
+.import-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+  margin-bottom: 10px;
+}
+.import-split--single {
+  grid-template-columns: 1fr;
+}
+.import-split--single .import-right {
+  display: none;
+}
+.import-left,
+.import-right {
+  display: flex;
+  flex-direction: column;
+}
+.import-left #inputText {
+  margin-bottom: 0;
+  min-height: 560px;
+  height: 100%;
+}
+.import-right {
+  min-height: 560px;
+  gap: 10px;
+}
+.import-right .parse-log {
+  margin-bottom: 0;
+  min-height: 0;
+  max-height: none;
+  flex: 1;
+}
+.import-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.import-actions .btn {
+  flex: 1;
+  margin-bottom: 0;
+}
+

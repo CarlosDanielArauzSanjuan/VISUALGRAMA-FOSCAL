@@ -1,0 +1,25 @@
+  <div id="tab-nodes" class="hidden">
+    <div class="section-header">
+      <div class="sh-text">
+        <h3>Actividades</h3>
+        <p></p>
+      </div>
+    </div>
+    <div class="ui-note">
+      <div class="ui-note-line">Revisa y ajusta tipos, rutas y responsables. <b>Arrastra para reordenar.</b> Para el límite cuentan solo <b>Acción</b> y <b>Decisión</b>. Los conectores no cuentan.</div>
+    <div class="ui-note-line"><b>Paginación:</b> máximo 12 actividades/decisiones por página. Filas de Inicio/Fin y salto de página tienen alto fijo de 40px. Máximo 8 responsables por página.</div>    </div>
+    <div id="nodes-limit-warn" class="limit-warn hidden"></div>
+    <div class="nodes-workspace" id="nodes-workspace">
+      <div id="nodes-list"></div>
+      <div class="nodes-toolbar-drawer" id="nodes-toolbar-drawer">
+        <button type="button" class="nodes-toolbar-tab" id="nodes-toolbar-tab" onclick="toggleNodesToolbar()" aria-controls="nodes-toolbar-panel" aria-expanded="false">Herramientas</button>
+        <div class="nodes-toolbar-panel" id="nodes-toolbar-panel">
+          <button class="btn" id="btn-add-action" onclick="addNode('action')">+ Acción</button>
+          <button class="btn" id="btn-add-decision" onclick="addNode('decision')">+ Decisión</button>
+          <button class="btn" id="btn-add-conector" onclick="addNode('conector')">+ Conector</button>
+          <button class="btn-clear nodes-toolbar-clear" onclick="clearNodes()">Limpiar nodos</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="generateXML()">Generar XML Draw.io</button>
+  </div>
